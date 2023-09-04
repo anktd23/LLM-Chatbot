@@ -1,0 +1,2746 @@
+Vehicle Color Recognition using Convolutional
+Neural Network
+Reza Fuad Rachmadiand I Ketut Eddy Purnamay
+Department of Multimedia and Networking Engineering
+Institut Teknologi Sepuluh Nopember, Surabaya, Indonesia 60111
+Email:fuad@its.ac.id,yketut@te.its.ac.id
+Abstract —Vehicle color information is one of the important
+elements in ITS (Intelligent Trafﬁc System). In this paper, we
+present a vehicle color recognition method using convolutional
+neural network (CNN). Naturally, CNN is designed to learn
+classiﬁcation method based on shape information, but we proved
+that CNN can also learn classiﬁcation based on color distribution.
+In our method, we convert the input image to two different
+color spaces, HSV and CIE Lab, and run it to some CNN
+architecture. The training process follow procedure introduce by
+Krizhevsky, that learning rate is decreasing by factor of 10 after
+some iterations. To test our method, we use publicly vehicle color
+recognition dataset provided by Chen. The results, our model
+outperform the original system provide by Chen with 2% higher
+overall accuracy.
+I. I NTRODUCTION
+Intelligent Transport System (ITS) is a system that manages
+transportation from trafﬁc management to law enforcement.
+One important object that widely explored by ITS is a vehicle
+and their properties, including type, color, and license plate.
+Vehicle color is an important property for vehicle identiﬁcation
+and provide visual cues for fast action law enforcement. Rec-
+ognize vehicle color is very challenging task because several
+factors including weather condition, quality of video/image
+acquisition, and strip combination of the vehicle. The ﬁrst
+factor, weather condition, may dramatically change the color
+illumination of the acquisition image. For example, if the
+image/video taken at haze condition then there a lot of ”soft”
+white noise added to the image. Soft white noise means that the
+noise is not random but continues and blended with the fore-
+ground and background objects. The quality of video/image
+acquisition is affected the ﬁnal decision of the vehicle color
+recognition system and its depends of the optical sensor in
+the camera. Camera that can capture object at high speed is
+recommended for ITS, but not all installed camera in the road
+can do that. A lot of cameras installed in the road only used
+to monitor the trafﬁc, pedestrians, and street conditions. The
+last factor is strip combination of the vehicle, which is very
+affected to the vehicle recognition system. Region selection is
+very important to tackle the problem.
+There are some research paper published to tackle vehicle
+color recognition problem, like in [1], [2], [6], [8], [9]. Chen et
+al. [2] use feature context and linear SVM classiﬁer to tackle
+the problem. Feature context is a collection of histogram that
+build with several areas, like spatial pyramid structure but with
+different region conﬁguration. In other paper [6], they try to
+tackle vehicle color recognition problem using 2D histogramwith some ROI conﬁguration as features and neural network
+as classiﬁer. Baek et al. [8] also use 2D histogram but without
+ROI conﬁguration and SVM as classiﬁer. Another approach
+is described by Son et al. [9] which using convolution kernel
+to extract similarity between positive and negative images and
+then feed up those similarity score to SVM classiﬁer.
+Color spaces are very important to color recognition ap-
+plications, like vehicle color recognition. The selection of
+color space will impact the recognition performance. The most
+usable color space in digital photography is RGB color space,
+but RGB color space has problem to color recognition because
+channel of RGB color space contribute equal for each channel
+so to distinct color is more difﬁcult. Usually, researcher will
+not use RGB as their primary color space and convert it to
+other color spaces that separate illumination and color, like
+CIE Lab or HSV [6], [8], [9]. Another approach is to make
+2D histogram of two channels, like H and S channel in HSV
+color space, and do classiﬁcation using those 2D histogram.
+In this paper, we present vehicle color recognition method
+using convolutional neural network (CNN). CNN is type of
+neural network but instead of using fully connected layer,
+CNN use layer called convolution layer to extract features
+from data. The training mechanism is very similar to normal
+neural network and use stochastic gradient descent as training
+algorithm. CNN is become very popular after winning the
+ILSVRC (ImageNet Large Scale Visual Recognition Chal-
+lenge) 2012 [5]. In those paper, they use more than 600,000
+neuron and 7 hidden layer to provide good model of the
+data. To avoid overﬁtting Krizhevsky et al. [5] employed
+regularization method called dropout to the fully connected
+layer [3]. The Krizhevsky model is huge and as reported in
+the paper, the model trained in six day for 450,000 iteration in
+GPU hardware. Before going into details, in section two we
+describe detils related works in color recognition. Section two
+describe details architecture of our CNN model. Section three
+reports the experiments we have done and discuss the results.
+II. R ELATED WORKS
+There are several research that try to tackle vehicle color
+recognition problem including in [1], [2], [6], [8], [9]. The
+newest research is describe by Chen et al. [2] in 2014 and
+Hsieh et al. [1] in 2015. Chen et al. use feature context
+(FC) with selected conﬁguration to divide the images into
+subregions, create histogram for each subregion, and learned
+it using linear SVM. Not all value in histogram is used to
+classify the vehicle color but the values clustered to formarXiv:1510.07391v3  [cs.CV]  15 Aug 2018Fig. 1. The CNN architecture used in our system consist 8 layers with 2 base networks with total 16 layers. First two layers and ﬁfth layer does normalization
+and pooling after convolution process. The third and fourth layer does only convolution process. Before feed up to fully-connected layers, the networks do
+channel concatenation process. Sample of input image is taken from Chen [2] dataset.
+codebook for the problem and then choose the codebook as
+feature for the classiﬁer. This mechanism know as Bag-of-
+Word (BoW) method. Chen et al. done preprocessing using
+haze removal method [7] and color contrast normalization
+method. The accuracy of system proposed by Chen et al. is
+very high, over 92%.
+Another paper by Hsieh et al. [1] proposed color correction
+using background image and two frame image of car. Not only
+color correction method, Hsieh et al. also proposed window
+removal method that remove the window part of the car images
+and classify vehicle color using lower part, like bumper and
+doors, of the car. The window removal done by taking the
+orientation of the car, ﬁt the detail segmented car image by
+ellipse shape and cut a half of the ellipse. Hsieh et al. done
+the experiments using three different classiﬁer, G-Classiﬁer,
+DC-Classiﬁer, and DG-Classiﬁer. G-Classiﬁer responsible for
+classify gray and non-gray color. The method is very simple
+threshold method with assumption that for gray color the
+avarage of three channel, RGB, is very close with color value
+of each channel. The DC-Classiﬁer and DG-Classiﬁer trained
+using SVM with features extracted from RGB and CIE Lab
+color space. Red, green, blue, and yellow color class classiﬁed
+using DC-Classiﬁer and the rest of the color class classiﬁed
+using DG-Classiﬁer. From the experiments, Hsieh et al. report
+that the average accuracy for the system is 93,59% with 7
+color class including black, silver, white, yellow, red, green,
+and blue.
+FC also used by Dule et al. [6] to tackle vehicle color
+recognition problem. The different between FC used by Chen
+et al. and Dule et al. is that Dule et al. only used two ROI
+(smooth hood peace and semi front vehicle). ROI is selected
+automatically using plate detection method and otsu threshold-
+ing to search smooth hood peace and heuristic approach for
+semi front vehicle. The classiﬁer used by Dule et al. are K-
+NN, ANN, and SVM. The best accuracy that reported in Dule
+et al. paper is 83,5% with conﬁguration of 8 bin histogram,
+several combination of color spaces, and ANN classiﬁer.Other approach for vehicle color recognition problem is
+classify vehicle color using 2D histogram features. Baek et
+al. [8] proposed the vehicle color recognition system using
+2D histogram features and SVM classiﬁer. Hue and saturation
+in HSV color space is used for creating the 2D histogram.
+From the experiments, the average accuracy of the system is
+94,92%. The dataset used in the experiment has 500 outdoor
+vehicle images with ﬁve color class including black, white,
+red, yellow, and blue color class.
+Son et al. [9] proposed other possible approach for color
+recognition using similirity method. The system using grid ker-
+nel that run on hue and saturation channel of HSV color space.
+The same dataset as in [8] is used in the experiments. Son et al.
+reported only precission and recall for each color class. The
+percentage of precission and recall from the experiments is
+very high and close to 100%. High precission and high recall
+indicate that the model has good accuracy.
+III. T HECNN A RCHITECTURE
+The architecture of our CNN can viewed in ﬁgure 1. Our
+CNN architecture consists 2 base networks and 8 layers for
+each base network with total 16 layers. The ﬁrst two layers
+of our CNN architecture is a convlutional layer and it does
+convolution process following by normalization and pooling.
+Convolutional layer is a layer that do convolution process that
+same as convolution process in image processing algorithm.
+ForIiis an input image and his a some convolution kernel,
+output image for convolution process Iocan be written as
+Io[m;n] =1X
+j= 11X
+i= 1Ii[i;j]:h[m;n] (1)
+with [m;n]is pixel value at coordinate (m;n). Training pro-
+cess of CNN will learn h, may called as kernel, as parameters
+of convolutional layer. The choice of activation function in
+convolutional layer have huge impact for the networks. There a
+several choice of activation function including tanh andReLU(Rectiﬁed Linear Unit). In our CNN networks we use ReLU
+activation function for all layers including the fully-connected
+layers. The normalization process done by following equation
+2 with= 10 4,= 0:75, andn= 5.
+li
+x;y=ki
+x;y=
+1 +
+ni+n=2X
+j=i n=2(ki
+x;y)2
+(2)
+withli
+x;yis normalization result and ki
+x;yis output of layer
+activation function for convolution at coordinate (x;y). Using
+those normalization, the accuracy of CNN increase about 2%
+according to [5]. The last process in two ﬁrst layers is pooling
+process. There are two type of pooling, max pooling and mean
+pooling. Each type has different approach, max pooling will
+take maximum respon from the convolutional process which is
+shape with sharp edges and mean pooling will take the average
+of the convolutional process respon which is summarize the
+shape in neighborhood. In our CNN architecture, we use max
+pooling with size 3x3 and stride 2 for overlapping pooling.
+The second, fourth and ﬁfth layer are grouping into two group
+which each group is independent each others. The third and
+fourth layer is also a convolutional layer but without pooling
+and normalization process. Output of third and fourth layer is
+same as input because we use 3x3 kernel with pad 1 added for
+each border. The ﬁfth layer is convolutional layer with only
+pooling process without normalization.
+Before going into a fully-connected layers, the pooling
+output of the ﬁfth layer from two base networks is concatenate
+and ﬂattened into one long vector. The sixth and seventh layer
+is a fully-connected layer employed dropout regularization
+method to reduce overﬁtting. The last layer is the softmax
+regression layer which can describe in the following equation
+p(y(i)=jjx(i);) =eT
+jx(i)
+Pk
+l=1eT
+lx(i)(3)
+withp(y(i)=jjx(i);)is probability of y(i)being class j
+given input x(i)with weight parameter .
+Overall, our CNN architecture consists 2 base networks,
+8 layers each with total 16 layers. First layer use 11x11@3
+kernel with total 48 kernels, second layer use 3x3@48 kernel
+with total 128 kernels, third use 3x3@128 kernel with total
+192 kernels, fourth layer use 3x3@192 kernel with total 192
+kernels, and ﬁfth layer use 3x3@192 with total 128 kernels.
+Pooling process is employed in ﬁrst, second, and ﬁfth layer
+with same parameter, pooling size of 3x3 with 2 pixel stride.
+Sixth, seventh, and eight layers is fully-connected layers with
+each 4096-4096-8 neuron with dropout regularization method
+employed in sixth and seventh layer. The network’s input is
+a 3 channel image with 150,228 dimensional or 227x227@3
+resolution. Total neuron involved in the networks is 658,280
+neurons.
+IV. T HEEXPERIMENTS
+A. Training Process
+Our models trained using stochastic gradient descent with
+115 examples per batch, momentum of 0.9 and weight decay of
+0.0005. For the experiments, we use Chen dataset [2] and some
+sample images of the dataset can be viewed in ﬁgure 2. The
+Fig. 2. Sample images from Chen dataset [2]. Some images are suffering
+from noise and brightness constancy.
+dataset contains 15601 vehicle images with 8 classes of vehicle
+color, which are black, blue, cyan, gray, green, red, white,
+and yellow. In the training process, half of class examples
+are used. Each example is resized into 256x256@3 resolution
+with certain color spaces. We use four different color spaces,
+RGB, CIE Lab, CIE XYZ, and HSV . Before the data processed
+for training, it cropped to 227x227@3 and subtracted by
+mean image of the training data. In training process the data
+randomly mirrored to increase the classiﬁer accuracy. We use
+learning rate of 0.01 and reduced continuously by a factor of
+10 at multiple iteration of 50,000 with maximum iteration of
+200,000. We use caffe framework [4] to implement our models.
+The weights of the networks are initialized using a gaussian
+function with = 0:01for connecting weights and ﬁxed value
+of0:1for bias value.
+The stochastic gradient descent method, SGD for short,
+is an optimization method that want to ﬁnd minimum or
+maximum value of some function. SGD will work for all
+function that have gradient or ﬁrst derivative. Usually the
+system use SGD for minimizing the error or loss function and
+update the weight parameters based on following function
+wi+1=wi rL(z;wi) (4)
+withwiis current weight parameters, is learning rate, and
+rL(z;wi)is the gradient of loss function Lwith respect to
+input examples z. For faster model convergence, the weight
+decay and momentum are added to the update equation. The
+ﬁnal equation of update function in SGD method is describe
+following
+wi+1=
+wi+ (1 
+)( rL(z;wi) (5)
+wi+1=wi rL(z;wi) wi (6)
+with
+is momentum variable and is weight decay. Changing
+momentum and weight decay may accelerate the training
+process.
+The training process done in GPU hardware to reduce the
+training time. Our GPU hardware consists 14 multiprocessor
+within 3 GB memory. There are two limitations of our GPU
+hardware for training process, the memory limiting the size ofTABLE I. A CCURACY OF OUR MODELS WITH 4DIFFERENT COLOR
+SPACES AND ACCURACY FROM CHEN ET AL . [2] FOR COMPARATION .
+Color Space
+Color Class RGB HSV CIE Lab CIE XYZChen et
+al. [2]
+yellow 0.9794 0.9450 0.9656 0.9828 0.9553
+white 0.9666 0.9624 0.9561 0.9649 0.9423
+blue 0.9410 0.9576 0.9410 0.9484 0.9535
+cyan 0.9645 0.9716 0.9645 0.9716 0.9787
+red 0.9897 0.9866 0.9897 0.9886 0.9878
+gray 0.8608 0.8503 0.8668 0.8647 0.8466
+black 0.9738 0.9703 0.9703 0.9709 0.9730
+green 0.8257 0.8215 0.8215 0.7676 0.7884
+average 0.9447 0.9372 0.9414 0.9432 0.9282
+TABLE II. E XECUTION TIME FOR OUR MODEL USING CPU AND GPU
+HARDWARE .
+CPU
+(1 core)GPU
+(448 cores)
+Initialization time 4.849 s 4.849 s
+Execution time 3.248 s 0.156 s
+the networks or the batch size used in the training process and
+the maximum dimension of the grid block execution (parallel
+execution conﬁguration) also limiting the batch size used in
+the training process. The training process taken over 2 GB
+GPU memory for the data and the networks with 4 days of
+execution time.
+B. Results and Discussion
+For testing purpose, we use 50% examples of dataset that
+not used in the training process. Table I summarize our testing
+results with four different color spaces and compare the results
+with the system provide by Chen et al. [2]. Each class consists
+different number of examples from 141 to 2371. From table I,
+it can see that RGB color space achieve the highest accuracy
+of the testing process with average accuracy of 94,47%. Four
+color spaces used in the models have high accuracy, more than
+90%, with narrow deviation. The results show that our CNN
+model outperform the original system of dataset provide by
+Chen et al. [2]. Our models outperform Chen et al. system in
+yellow, white, blue, red, gray, black, and green color class.
+Only on cyan color class our system had lower accuracy
+comparing to the Chen et al. system but with different only
+0.7%. Figure 3 is a confusion matrix for our model using RGB
+color space. The confusion matrix shows that the most worst
+accuracy of our model is in green and gray color class. Some
+examples of green class is misclassiﬁed as gray class and its
+above 10%. As seen in the dataset, some green color class
+examples has color that very close to gray, more like green-
+gray color than green, so the classiﬁer may have it wrong
+classiﬁed as a gray color class. The same case appears in gray
+color class which some gray color class examples misclassiﬁed
+as white color class. Thus may appears because of very bright
+Fig. 3. Confusion matrix from our model with RGB color space. Each cell
+describe accuracy for each class measure in percentage.
+sunlight reﬂection on metallic paint or the color is too light so
+it’s very close to another color as well.
+Another issue to tackle is execution time used to classify
+vehicle color. We implement the models using two different
+hardware, the ﬁrst one the model running on 1 core CPU and
+the second one the model running on 448 cores GPU with
+NVIDIA Tesla C2050. Table II summarize average execution
+time for all testing examples. As shown in table II, the models
+that run on GPU have more than 20x faster than the models
+that run on CPU, so the issue of execution time is solved
+if the models running on appropriate hardware conﬁguration.
+The initialization time is a time for the system to prepare
+the model, load it to the memory, and load mean image. For
+the practical implementation, we recommend using the client
+server mechanism, send the vehicle detection result to the
+server, do the vehicle color classiﬁcation in server backend
+using GPU hardware, and send back the result to the Intelligent
+Transportation System for further processing.
+To see how our models capturing color information in the
+data, we visualize a several layer of our CNN models. The
+ﬁrst convolutional layer is an important part of the network
+to extract low-level features. Figure 4 is a visualization of all
+kernels in the ﬁrst convolutional layer and an example output
+of the pooling process in layer conv1 and conv2 of our CNN
+architecture. As seen in ﬁgure 4, the ﬁrst convolutional layer
+capture rich color features in the input image. All vehicle color
+variations in dataset are present in the kernels. The kernels
+from network 1, ﬁgure 4a, capture a lot of cyan-like color.
+Cyan-like color that appears in the kernel may contribute to
+the red color class or cyan color class. Another color that
+appears repeatedly in the kernel are red-blue color, green-
+gray color, and orange-like color. For further investigation,
+we capture respond from convolutional layer continuing with
+normalization and pooling process and it can see in ﬁgure 4c.
+We test our models using one of the test images and try to
+analyze the behaviour of our models. Figure 4c show that for
+yellow color class a lot of the green-like color kernel neuron(a) Kernel from network 1
+ (b) Kernel from network 2
+ (c) Output example from pooling process
+Fig. 4. 96 kernel with 11x11@3 resolution learned by our ﬁrst convolutional layer with input resolution 224x224@3 and output example from pooling process.
+(a) 48 kernel from network 1, (b) 48 kernel from network 2, (c) output from pooling process in layer conv1 and conv2.
+is active and its looks like our models learned that color can
+be recognize from the hood color or the top color of the car.
+This behaviour occurs because most all of the images in dataset
+take image of the front of the car from some height and a little
+deviation of angle, so the side of the car is not cover very much.
+The camera conﬁguration of taken images in dataset simulate
+the CCTV or other street camera that relatively used such that
+conﬁguration.
+V. C ONCLUSION
+In the paper, we present the vehicle color recognition sys-
+tem using convolutional neural network. Our model succesfully
+capturing vehicle color in very high accuracy, 94,47%, and
+outperform the original system provide by Chen [2]. From
+the experiment, the best accuracy is achieve using RGB color
+space and this is contradictive with several papers that not
+recomend RGB color space for color recognition and using
+another color space like HSV or YUV . Execution time for our
+models is about 3 s for CPU (1 core) and 0.156 s for GPU
+(448 cores), although the execution time is slower than system
+provide by Chen [2] but its still can be used for practical
+implementation with several adjustment.
+REFERENCES
+[1] J.-W. Hsieh, L.-C. Chen, S.-Y . Chen, D.-Y . Chen, S. Alghyaline, and
+H.-F. Chiang, Vehicle Color Classiﬁcation Under Different Lighting
+Conditions Through Color Correction , IEEE Sensors Journal, 2015, V ol:
+15, Issue: 2, pp: 971–983.
+[2] P. Chen, X. Bai and W. Liu, Vehicle Color Recognition on an Urban Road
+by Feature Context , IEEE Transactions on Intelligent Transportation
+Systems (TITS), 2014, Issue: 99, pp: 1-7.
+[3] N. Srivastava, G. E. Hinton, A. Krizhevsky, I. Sutskever, and R.
+Salakhutdinov, Dropout: A Simple Way to Prevent Neural Networks from
+Overﬁtting , Journal of Machine Learning Research 15 (2014), pp: 1929–
+1958.
+[4] Y . Jia, E. Shelhamer, J. Donahue, S. Karayev, J. Long, R. Girshick, S.
+Guadarrama, and T. Darrell, Caffe: Convolutional Architecture for Fast
+Feature Embedding , ACM International Conference on Multimedia 2014,
+pp: 675–678.
+[5] A. Krizhevsky, I. Sutskever, and G. E. Hinton, ImageNet Classiﬁcation
+with Deep Convolutional Neural Networks , NIPS 2012, pp: 1097–1105.
+[6] E. Dule, M. Gokmen, M. S. Beratoglu, A convenient feature vector con-
+struction for vehicle color recognition , Proc. 11th WSEAS International
+Conference on Neural Networks, Evolutionary Computing and Fuzzy
+systems, pp: 250255, (2010)[7] K. He, J. Sun, and X. Tang, Single image haze removal using dark
+channel prior , in Proc. IEEE Conf. CVPR, 2009, pp: 19561963.
+[8] N. Baek, S.-M. Park, K.-J. Kim, and S.-B. Park, Vehicle Color Clas-
+siﬁcation Based on the Support Vector Machine Method , International
+Conference on Intelligent Computing, ICIC 2007, pp: 1133–1139.
+[9] J.-W. Son, S.-B. Park, and K.-J. Kim, A convolutional kernel method
+for color recognition , International Conference on Advanced Language
+Processing and Web Information Technology (ALPIT 2007), pp: 242-
+247.
+DATA STRUCTURE AND ALGORITHM  
+Unit I  
+Arrays and sequential representations – ordered lists – Stacks and Queues – Evaluation 
+ofExpressions – Multiple Stacks and Queues – Singly Linked List – Linked Stacks and 
+queues – Polynomial addition.  
+Data Structure Introduction:  
+The data structure name indicates itself that organizing the data in memory. 
+There are many ways of organizing the data in the memory as we have already seen 
+one of the data structures, i.e., a rray in C language. Array is a collection of memory 
+elements in which data is stored sequentially, i.e., one after another. In other words, 
+we can say that array stores the elements in a continuous manner. This organization 
+of data is done with the help of  an array of data structures. There are also other ways 
+to organize the data in memory. To structure the data in memory, 'n' number of 
+algorithms were proposed, and all these algorithms are known as Abstract data 
+types.  These abstract data types are the se t of rules.   
+ 
+ 
+Types of Data Structures  
+There are two types of data structures:  
+o Primitive data structure  
+o Non-primitive data structure  
+Primitive Data structure  
+The primitive data structures are primitive data types. The i nt, char, float, double, and 
+pointer are the primitive data structures that can hold a single value.  
+Non-Primitive Data structure  
+The non -primitive data structure is divided into two types:  
+ Linear data structure  
+ Non-linear data structure  
+Linear Data Structure  
+The arrangement of data in a sequential manner is known as a linear data structure. 
+The data structures used for this purpose are Arrays, Linked list, Stacks, and Queues. 
+In these data structures, one element is connected to only one another element in a 
+linear form.  
+Non- Linear Structure:  
+When one element is connected to the 'n' number of elements known as a non -
+linear data structure. The best example is trees and graphs. In this case, the elements 
+are arranged in a random manner.  
+Data structures can also be classified as:  
+ Static data structure:  It is a type of data structure where the size is allocated 
+at the compile time. Therefore, the maximum size is fixed.  
+ Dynamic data structure:  It is a type of data structure where the size is  
+allocated at the run time. Therefore, the maximum size is flexible.  
+Major Operations  
+The major or the common operations that can be performed on the data structures 
+are: 
+o Searching:  We can search for any element in a data structure.  
+o Sorting:  We can sort th e elements of a data structure either in an ascending 
+or descending order.  
+o Insertion:  We can also insert the new element in a data structure.  
+o Updation:  We can also update the element, i.e., we can replace the element 
+with another element.  
+o Deletion:  We can also perform the delete operation to remove the element 
+from the data structure.  
+Advantages of Data structures  
+The following are the advantages of a data structure:  o Efficiency:  If the choice of a data structure for implementing a particular ADT 
+is prop er, it makes the program very efficient in terms of time and space.  
+o Reusability:  The data structure provides reusability means that multiple client 
+programs can use the data structure.  
+o Abstraction:  The data structure specified by an ADT also provides the l evel of 
+abstraction. The client cannot see the internal working of the data structure, 
+so it does not have to worry about the implementation part. The client can 
+only see the interface.  
+Arrays and Sequential Representation  
+Definition  
+o Arrays are defined as the collection of similar type of data items stored at contiguous 
+memory locations.  
+o Arrays are the derived data type in C programming language which can store the 
+primitive type of data such as int, char, double, float, etc.  
+o Array is the simplest data structure where each data element can be randomly 
+accessed by using its index number.  
+o For example, if we want to store the marks of a student in 6 subjects, then we don't 
+need to define different variable for the marks in differe nt subject. instead of that, we 
+can define an array which can store the marks in each subject at a the contiguous 
+memory locations.  
+The array  marks[10]  defines the marks of the student in 10 different subjects where 
+each subject marks are located at a part icular subscript in the array 
+i.e. marks[0]  denotes the marks in first subject,  marks[1]  denotes the marks in 2nd 
+subject and so on.  
+Properties of the Array  
+1. Each element is of same data type and carries a same size i.e. int = 4 bytes.  
+2. Elements of the array  are stored at contiguous memory locations where the first 
+element is stored at the smallest memory location.  
+3. Elements of the array can be randomly accessed since we can calculate the address of 
+each element of the array with the given base address and the  size of data element.  
+Advantages of Array  
+o Array provides the single name for the group of variables of the same type therefore, 
+it is easy to remember the name of all the elements of an array.  
+o Traversing an array is a very simple process, we just need to increment the base 
+address of the array in order to visit each element one by one.  
+o Any element in the array can be directly accessed by using the index.  Memory Allocation of the array  
+As we have mentioned, all the data elements of an array are stored at 
+contiguous locations in the main memory. The name of the array represents 
+the base address or the address of first element in the main memory. Each 
+element of the array is represented by a proper indexing . 
+The indexing of the array can be defined in three wa ys. 
+1. 0 (zero - based indexing) : The first element of the array will be arr[0].  
+2. 1 (one - based indexing) : The first element of the array will be arr[1].  
+3. n (n - based indexing) : The first element of the array can reside at any random index 
+number.  
+In the following image, we have shown the memory allocation of an array arr of size 
+5. The array follows 0 -based indexing approach. The base address of the array is 
+100th byte. This will be the address of arr[0]. Here, the size of int is 4 bytes therefore 
+each el ement will take 4 bytes in the memory.  
+ 
+ 
+ 
+In 0 based indexing, If the size of an array is n then the maximum index number, an 
+element can have is  n-1. However, it will be n if we use  1 based indexing.  
+Accessing Elements  of an array  
+To access any random element of an array we need the following information:  
+1. Base Address of the array.  
+2. Size of an element in bytes.  
+3. Which type of indexing, array follows.  
+Address of any element of a 1D array can be calculated by using the foll owing 
+formula:  
+        Byte  address  of element  A[i]  = base  address  + size * ( i - first index  ) 
+2D Array  
+2D array can be defined as an array of arrays. The 2D array is organized as matrices 
+which can be represented as the collection of rows and columns.  
+However, 2D arrays are created to implement a relational database look alike data 
+structure. It provides ease of holding bulk of data at once which can be passed to 
+any number of functions wherever required.  
+How to declare 2D Array  
+The syntax of declaring two dimensional array is very much similar to 
+that of a one dimensional array, given as follows.  
+1. int arr[max_rows][max_columns];     
+however, It produces the data structure which looks like following.  
+25M  
+ 
+ 
+Above image s hows the two dimensional array, the elements are organized in the form of 
+rows and columns. First element of the first row is represented by a[0][0] where the number 
+shown in the first index is the number of that row while the number shown in the second 
+index is the number of the column.  
+How do we access data in a 2D array  
+Similar to one dimensional arrays, we can access the individual cells in a 
+2D array by using the indices of the cells. There are two indices attached 
+to a particular cell, one is its row number while the other is its column 
+number.  
+However, we can store the value stored in any particular cell of a 2D array to some 
+variable x by using the following syntax.  
+1. int x = a[i][j];     
+where i and j is the row and column number of the cell respectively.  
+We can assign each cell of a 2D array to 0 by using the following code:  
+1. for ( int i=0; i<n ;i++)    
+2. {   
+3.     for (int j=0; j<n; j++)    
+4.     {   
+5.         a[i][j]  = 0;    
+6.     }   
+7. }   
+Initializing 2D Arrays  
+We know  that, when we declare and initialize one dimensional array in C 
+programming simultaneously, we don't need to specify the size of the 
+array. However this will not work with 2D arrays. We will have to define 
+at least the second dimension of the array.  
+ 
+The syntax to declare and initialize the 2D array is given as follows.  
+1. int arr[2][2] = {0,1,2,3};    
+The number of elements that can be present in a 2D array will always be equal to 
+(number of rows * number of columns ). 
+Mapping 2D array to 1D array  
+When it com es to map a 2 dimensional array, most of us might think that why this mapping is 
+required. However, 2 D arrays exists from the user point of view. 2D arrays are created to 
+implement a relational database table lookalike data structure, in computer memory, the 
+storage technique for 2D array is similar to that of an one dimensional array.  The size of a two dimensional array is equal to the multiplication of number of rows and the 
+number of columns present in the array. We do need to map two dimensional array to the one 
+dimensional array in order to store them in the memory.  
+A 3 X 3 two dimensional array is shown in the following image. However, this array 
+needs to be mapped to a one dimensional array in order to store it into the memory.  
+ 
+ 
+ 
+There are two main techniques of storing 2D array elements into memory  
+1. Row Major ordering  
+In row major ordering, all the rows of the 2D array are stored into the memory 
+contiguously. Considering the array shown in the above image, its memory allocation 
+according to row major order is shown as follows.  
+ 
+ 
+ 
+first, the 1st row of the array is stored into the memory completely, then the 2nd row 
+of the arr ay is stored into the memory completely and so on till the last row.  
+ 
+ 
+ 
+2. Column Major ordering  
+According to the column major ordering, all the columns of the 
+2D array are stored into the memory contiguously. The memory 
+allocation of the array which is shown in in the above image is 
+given as follows.  
+ 
+first, the 1st column of the array is stored into the memory completely, then the 
+2nd row of the array is stored into the memory completel y and so on till the last 
+column of the array.  
+ 
+ 
+ 
+Calculating the Address of the random element of a 2D array  
+Due to the fact that, there are two different techniques of storing the two 
+dimensional array into the memory, there are two different formulas to calculate the 
+address of a random element of the 2D array.  
+By Row Major Order  
+If array is declared by a[m][n] where m is the number of rows while n is the number 
+of columns, then address of an element a[i][j]  of the array stored in row major order 
+is calculated as,  
+1. Address(a[i][j])  = B. A. + (i * n + j) * size    
+     where, B. A. is the base address or the address of the first element of the array a[0][0] .  
+Example :  
+1. a[10...30, 55...75], base address  of the array  (BA) = 0, size of an element  = 4 bytes  .    
+2. Find the location  of a[15][68].    
+3.    
+4. Address(a[ 15][68]) = 0 +    
+5. ((15 - 10) x (68 - 55 + 1) + (68 - 55)) x 4   
+6.    
+7. = (5 x 14 + 13) x 4   
+8. = 83 x 4    
+9. = 332 answer     
+By Column major order  
+If array is declared by a[m][n] where m is the number of rows while n is the number 
+of columns, then address of an element a[i][j] of the array stored in row major order 
+is calculated as,  
+1. Address(a[i][j])  = ((j*m)+i)*Size  + BA    
+where BA is the base addre ss of the array.  
+Example:  
+A [-
+5 ... +20][20 ... 70], BA = 1020 , Size of element  = 8 bytes.  Find the location  of a[0][30].    
+   
+Address  [A[0][30]) = ((30-20) x 24 + 5)  x 8 + 1020    =  245 x 8 + 1020  = 2980  bytes     
+ 
+Ordered  list 
+       An ordered list is a list in which the order of the items is significant. 
+However, the items in an ordered list are not necessarily sorted. 
+Consequently, it is possible to change the order o items and still have a 
+valid ordered list.  
+Consider a list of the  titles of the chapters in this book. The order of the 
+items in the list corresponds to the order in which they appear in the book. 
+However, since the chapter titles are not sorted alphabetically, we cannot 
+consider the list to be sorted. Since it is possi ble to change the order of the 
+chapters in book, we must be able to do the same with the items of the list. 
+As a result, we may insert an item into an ordered list at any position.  
+A searchable container is a container that supports the following additiona l 
+operations:  
+Insert  
+  -used to put objects into a the container;  
+withdraw  
+-used to remove objects from the container;  
+find 
+-used to locate objects in the container;  isMember  
+-used to test whether a given object instance is in the container.  
+stack  
+ 
+A real -world stack allows operations at one end only. For example, we can place or 
+remove a card or plate from the top of the stack only. At any given time, we can only 
+access the top element of a stack.  
+This feature makes it LIFO data structure. LIFO stan ds for Last -in-first-out. Here, 
+the element which is placed (inserted or added) last, is accessed first. In stack 
+terminology, insertion operation is called  PUSH  operation and removal operation is 
+called  POP  operation.  
+Stack Representation  
+The following diagram depicts a stack and its operations −  
+     
+A stack can be implemented by means of Array, Structure,  Pointer, and Linked List. 
+Stack can either be a fixed size one or it may have a sense of dynamic resizing. 
+Here, we are going to implement stack using arrays, which makes it a fixed size 
+stack implementation.  
+Basic Operations  
+Stack operations may involve initializing the stack, using it and then de -initializing it. 
+Apart from these basic stuffs, a stack is used for the following two primary 
+operations −  
+ push()  − Pushing (storing) an element on the stack.  
+ pop()  − Removing (accessing) an element from the sta ck. 
+When data is PUSHed onto stack.  
+To use a stack efficiently, we need to check the status of stack as well. For the 
+same purpose, the following functionality is added to stacks −  
+ peek()  − get the top data element of the stack, without removing it.  
+ isFull () − check if stack is full.  
+ isEmpty()  − check if stack is empty.  
+At all times, we maintain a pointer to the last PUSHed data on the stack. 
+The top pointer provides top value of the stack without actually removing it.  
+First we should learn about procedures  to support stack functions −  
+peek()  
+Algorithm of peek() function −  
+begin procedure peek  
+   return stack[top]  
+end procedure  
+isfull()  
+Algorithm of isfull() function −  
+begin procedure isfull  
+ 
+   if top equals to MAXSIZE  
+      return true 
+   else 
+      return false 
+   endif 
+    
+end procedure  
+isempty()  
+Algorithm of isempty() function −  
+begin procedure isempty  
+ 
+   if top less than 1 
+      return true 
+   else 
+      return false 
+   endif 
+    
+end procedure  
+Implementation of isempty() function in C programming language is slightly 
+different. We initialize top at -1, as the index in array starts from 0. So we check if 
+the top is below zero or -1 to determine if the stack is empty. Here's the code −  
+Push Operat ion 
+The process of putting a new data element onto stack is known as a Push 
+Operation. Push operation involves a series of steps −  
+ Step 1  − Checks if the stack is full.  
+ Step 2  − If the stack is full, produces an error and exit.   Step 3  − If the stack is not  full, increments  top to point next empty space.  
+ Step 4  − Adds data element to the stack location, where top is pointing.  
+ Step 5  − Returns success.  
+If the linked list is used to implement the stack, then in step 3, we need to allocate 
+space dynamically.  
+Algorithm for PUSH Operation  
+A simple algorithm for Push operation can be derived as follows −  
+begin procedure push : stack, data 
+ 
+   if stack is full 
+      return null 
+   endif 
+    
+   top ← top + 1 
+   stack[top] ← data 
+ 
+end procedure  
+Pop Operation  
+Accessing the content while removing it from the stack, is known as a Pop 
+Operation. In an array implementation of pop() op eration, the data element is not 
+actually removed, instead  top is decremented to a lower position in the stack to 
+point to the next value. But in linked -list implementation, pop() actually removes 
+data element and deallocates memory space.  
+A Pop operation may involve the following steps −  
+ Step 1  − Checks if the stack is empty.  
+ Step 2  − If the stack is empty, produces an error and exit.  
+ Step 3  − If the stack is not empty, accesses the data element at which  top is 
+pointing.  
+ Step 4  − Decreases the value of top by 1.  
+ Step 5  − Returns success.  
+Algorithm for Pop Operation  
+A simple algorithm for Pop operation can be derived as follows −  
+begin procedure pop : stack 
+ 
+   if stack is empty 
+      return null 
+   endif 
+       data ← stack[top] 
+   top ← top - 1 
+   return data 
+ 
+end procedure  
+ 
+Queue  
+Queue is an abstract data structure, somewhat similar to Stacks. Unlike stacks, a queue is 
+open at both its ends. One end is always used to insert data (enqueue) and the other is used 
+to remove data (dequeue). Queue follows First -In-First-Out methodology, i.e., the data item 
+stored first will be accessed first.  
+ 
+Queue Representation  
+As we now understand that in queue, we access both ends for different reasons. 
+The following diagram given below tries to explain queue representation as data 
+structure −  
+  
+ 
+Basic Op erations  
+Queue operations may involve initializing or defining the queue, utilizing it, and then 
+completely erasing it from the memory. Here we shall try to understand the basic 
+operations associated with queues −  
+ enqueue()  − add (store) an item to the queue.  
+ dequeue()  − remove (access) an item from the queue.  
+Few more functions are required to make the above -mentioned queue operation 
+efficient. These are −  
+ peek()  − Gets the element at the front of the queue without removing it. 
+ isfull()  − Checks if the queue is full.  
+ isempty()  − Checks if the queue is empty.  
+In queue, we always dequeue (or access) data, pointed by  front  pointer and while 
+enqueing (or storing) data in the queue we take help of  rear pointer.  
+peek()  
+This function helps to see the data at the  front  of the queue. The algorithm of 
+peek() function is as follows −  
+Algorithm  
+begin procedure peek  
+   return queue[front]  
+end procedure  
+isfull()  
+As we are using single dimension array to implement queue, we just check for the 
+rear pointer to reach at MAXSIZE to determine that the queue is full. In case we 
+maintain the queue in a circular linked -list, the algorithm will differ. Algorithm of 
+isfull() function – 
+Algorithm  
+begin procedure isfull  
+ 
+   if rear equals to MAXSIZE  
+      return true 
+   else 
+      return false 
+   endif 
+    
+end procedure  
+isempty()  
+Algorithm of isempty() function −  
+Algorithm  
+begin procedure isempty  
+ 
+   if front is less than MIN  OR front is greater than rear  
+      return true 
+   else 
+      return false 
+   endif 
+    
+end procedure  
+If the value of  front  is less than MIN or 0, it tells that the queue is not yet initialized, 
+hence empty.  
+Enqueue Operation  
+Queues maintain two data pointers,  front  and rear. Therefore, its operations are 
+comparatively difficult to implement than that of stacks.  
+The following steps should be taken to enqueue (insert) data into a queue −  
+ Step 1  − Check if the queue is full.  
+ Step 2  − If the queue is full, produce overflow error a nd exit.  
+ Step 3  − If the queue is not full, increment  rear pointer to point the next 
+empty space.  
+ Step 4  − Add data element to the queue location, where the rear is pointing.  
+ Step 5  − return success.  Sometimes, we also check to see if a queue is initialized or not, to 
+handle any unforeseen situations.  
+ 
+ 
+ 
+Algorithm for enqueue operation  
+procedure enqueue (data)       
+      if queue is full 
+      return overflow  
+   endif 
+      rear ← rear + 1 
+   queue[rear] ← data 
+   return true 
+   end procedure  
+Dequeue Operation  
+Accessing data from the queue is a process of two tasks − access the data 
+where  front  is pointing and remove the data after access. The following steps are 
+taken to perform  dequeue  operation −  
+ Step 1  − Check if the queue is empty.  
+ Step 2  − If the queue is empty, produce underflow error and exit.  
+ Step 3  − If the queue is not empty, access the data where  front  is pointing.  
+ Step 4  − Increment  front  pointer to point to the next available data element.  
+ Step 5  − Return success.  
+ 
+Algorithm for dequeue operation  
+procedure dequeue  
+    
+   if queue is empty 
+      return underflow  
+   end if 
+ 
+   data = queue[front] 
+   front ← front + 1 
+   return true 
+ 
+end procedure  
+ 
+ 
+ 
+Evaluation of Expression  
+The way to write arithmetic expression is known as a  notation . An arithmetic 
+expression can be written in three different but equivalent notations, i.e., without 
+changing the essence or output of an expression. These n otations are – 
+ Infix Notation  
+ Prefix (Polish) Notation  
+ Postfix (Reverse -Polish) Notation  
+These notations are named as how they use operator in expression. We shall learn 
+the same here in this chapter.  
+Infix Notation  
+We write expression in  infix notation, e.g. a - b + c, where operators are used  in-
+between operands. It is easy for us humans to read, write, and speak in infix 
+notation but the same does not go well with computing devices. An algorithm to 
+process infix notation could be difficult and  costly in terms of time and space 
+consumption.  
+Prefix Notation  
+In this notation, operator is  prefix ed to operands, i.e. operator is written ahead of 
+operands. For example,  +ab. This is equivalent to its infix notation  a + b . Prefix 
+notation is also known as Polish Notation . 
+Postfix Notation  
+This notation style is known as  Reversed Polish Notation . In this notation style, 
+the operator is  postfix ed to the operands i.e., the operator is written after the 
+operands. For example,  ab+. This is equivalent to its infix notation  a + b . 
+The following table briefly tries to show the difference in all three notations −  
+Sr.No.  Infix Notation  Prefix Notation  Postfix Notation  
+1 a + b + a b a b + 
+2 (a + b) ∗ c ∗ + a b c  a b + c ∗ 
+3 a ∗ (b + c)  ∗ a + b c  a b c + ∗ 
+4 a / b + c / d  + / a b / c d  a b / c d / +  
+5 (a + b) ∗ (c + d)  ∗ + a b + c d  a b + c d + ∗ 
+6 ((a + b) ∗ c) - d - ∗ + a b c d  a b + c ∗ d - 
+Parsing Expressions  
+As we have discussed, it is not a very efficient way to design an algorithm or 
+program to parse infix notations. Instead, these infix notations are first converted 
+into either postfix or prefix notations and then computed.  
+To parse any arithmetic expression, we need to take care of operator precedence 
+and associativity also.  
+Precedence  
+When an operand is in between two different operators, which operator will take the 
+operand first, is decided by the precedence of an operato r over others. For example 
+−   a+b*c   -  a+(b*c)  
+As multiplication operation has precedence over addition, b * c will be evaluated 
+first. A table of operator precedence is provided later.  
+Associativity  
+Associativity describes the rule where operators with the same precedence appear 
+in an expression. For example, in expression a + b − c, both + and – have the same 
+precedence, then which part of the expression will be evaluated first, is determ ined 
+by associativity of those operators. Here, both + and − are left associative, so the 
+expression will be evaluated as  (a + b) − c . 
+Precedence and associativity determines the order of evaluation of an expression. 
+Following is an operator precedence and  associativity table (highest to lowest) −  
+Sr.No.  Operator  Precedence  Associativity  
+1 Exponentiation ^  Highest  Right Associative  
+2 Multiplication ( ∗ ) & Division ( / )  Second Highest  Left Associative  
+3 Addition ( + ) & Subtraction ( − )  Lowest  Left Associative  
+The above table shows the default behavior of operators. At any point of time in 
+expression evaluation, the order can be altered by using parenthesis. For example 
+− 
+In a + b*c , the expression part  b*c will be evaluated first, with multiplication as 
+precedence over addition. We here use parenthesis for  a + b  to be evaluated first, 
+like (a + b)*c . 
+Postfix Evaluation Algorithm  
+Step 1 − scan the expression from left to right  
+Step 2 − if it is an operand push it  to stack  
+Step 3 − if it is an operator pull operand from stack and perform 
+operation  
+Step 4 − store the output of step 3, back to stack  
+Step 5 − scan the expression until all operands are consumed  
+Step 6 − pop the stack and perform operation  
+A postfix expression is a collection of operators and operands in which the operator is placed 
+after the operands. That means, in a postfix expression the operator follows the operands.  
+ 
+ 
+ 
+Postfix Expression has following general structure...  Operand1 Oper and2 Operator  
+Example  
+ 
+Postfix Expression Evaluation using Stack Data 
+Structure  
+A postfix expression can be evaluated using the Stack data structure. To evaluate a postfix 
+expression using Stack data structure we can use the following steps... Read all the symbols 
+one by one from left to right in the given Postfix Expression  
+1. If the reading symbol is  operand , then push it on to the Stack.  
+2. If the reading symbol is  operator (+ , - , * , / etc.,) , then perform TWO pop 
+operations and store the two popped oparands in two different variables (operand1 
+and operand2). Then perform reading symbol operation using operand1 and 
+operand2 and push result back on to the Stack.  
+3. Finally! perform a pop operation and display the popped value as final result.  
+Examp le Consider the following Expression..  
+ 
+ 
+Multiple Stacks and Queues:  
+Multiple Stacks:  
+Following pictures are two ways to do two stacks in array:  
+1. None fixed size of the stacks:  
+ 
+ Stack 1 expands from the 0th element to the right  
+ Stack 2 expands from the 12th element to the left  
+ As long as the value of Top1 and Top2 are not next to each other, it has free elements for 
+input the data in the array  
+ When both Stacks are full, Top1 and Top 2 will be next to each other  
+ There is no fixed boundary between Stack 1 and Stack 2  
+ Elements –1 and –2 are using to store the information needed to manipulate the stack 
+(subscript for Top 1 and Top 2)  
+  
+2. Fixed size of  the stacks:  
+ 
+ Stack 1 expands from the 0th element to the right  
+ Stack 2 expands from the 6th element to the left  
+ As long as the value of Top 1 is less than 6 and greater than 0, Stack 1 has free 
+elements to input the data in the array  
+ As long as the value of Top 2 is less than 11 and greater than 5, Stack 2 has free 
+elements to input the data in the array  
+ When the value of Top 1 is 5, Stack 1 is full  
+ When the value of Top 2 is 10,  stack 2 is full  
+ Elements –1 and –2 are using to store the size of Stack 1 and the subscript of the array for 
+Top 1 needed to manipulate Stack 1  
+ Elements –3 and –4 are using to store the size of Stack 2 and the subscript of the array for 
+Top 2 needed to ma nipulate Stack 2  
+ procedure ADD (i,X ) //add element X to the i'th stack, 1 i n//  
+ if T(i) = B(i + 1) then call STACK -FULL (i)  
+T(i) ← T(i) + 1  
+ V(T(i)) ← X //add X to the i'th stack//  
+ end ADD  
+ 
+procedure DELETE(i,X ) //delete topmost element of stack i//  
+ if T(i) = B(i) then call STACK -EMPTY(i)  
+X ← V(T(i))  
+ T(i) ← T(i) - 1  
+end DELETE  
+ 
+Multiple Queues:  
+Following pictures are two ways to do two queues in array:  
+1. None fixed size of the queues:  
+ 
+ Queue 1 expands from the 0th element to the right and circular back to the 0th element  
+ Queue 2 expands from the 8th element to the left and circular back to the 8th element  
+ Temporary boundary between the Queue 1 and the  Queue 2; as long as there has free 
+elements in the array and boundary would be shift  
+ Free elements could be anywhere in the Queue such as before the front, after the rear, and 
+between front and rear in the Queue  
+ Queue 1’s and Queue 2 ‘s size could be cha nge if it is necessary.  When the Queue 1 is full 
+and the Queue 2 has free space; the Queue 1 can increase the size to use that free space 
+from the Queue 2. Same way for the Queue 2  
+  Elements –1, –2, and –3 are using to store the size of the Queue 1, the f ront of the Queue 1, 
+and the data count for the Queue 1 needed to manipulate the Queue 1  
+ Elements –4, –5, and –6 are using to store the size of the Queue 2, the front of the Queue 2, 
+and the data count for the Queue 2 needed to manipulate the Queue 2  
+ Inser ts data to the Queue 1, Q1Rear = (Q1Front + Q1count) % Q1Size  
+ Inserts data to the Queue 2, Q2Rear = (Q2Front + Q2count) % Q2Size + Q1Size  
+ Deletes data from the Queue 1, Q1Front = (Q1Front + 1) % Q1Size  
+ Deletes data from the Queue 2, Q2Front = (Q2Front + 1 ) % Q2Size + Q1Size  
+  
+2. Fixed size of the queue:  
+ 
+ Queue 1 expands from the 0th element to the 4th element and circular back to 0th element  
+ Queue 2 expands from the 8th element to the 5th element and circular back to 8th element  
+ The boundary is fixed between the Queue 1 and the Queue 2  
+ Free elements could be anywhere in the Queue such as before the front, after the rear, and 
+between front and rear in the Queue  
+ Elements –1, –2, and –3 are using to store the size of the Queue 1, the front of the Queue 1, 
+and the data count  for the Queue 1 needed to manipulate the Queue 1  
+ Elements –4, –5, and –6 are using to store the size of the Queue 2, the front of the Queue 2, 
+and the data count for the Queue 2 needed to manipulate the Queue 2  
+ Inserts data to the Queue 1, Q1Rear = (Q1Fro nt + Q1count) % Q1Size  
+ Inserts data to the Queue 2, Q2Rear = (Q2Front + Q2count) % Q2Size + Q1Size  
+ Deletes data from the Queue 1, Q1Front = (Q1Front + 1) % Q1Size  
+ Deletes data from the Queue 2, Q2Front = (Q2Front + 1) % Q2Size + Q1Size  
+ 
+A linked list is a sequence of data structures, which are connected together via links.  
+Linked List is a sequence of links which contains items. Each link contains a 
+connection to another link. Linked list is the second most -used data structure after 
+array. Following are the important terms to understand the concept of Linked List.  
+ Link − Each link of a linked list can store a data called an element.  
+ Next  − Each link of a linked list contains a link to the next  link called Next.  
+ LinkedList  − A Linked List contains the connection link to the first link called 
+First.  
+Linked List Representation  
+Linked list can be visualized as a chain of nodes, where every node points to the 
+next node.  
+   
+As per the above illustration, following are the important points to be considered.  
+ Linked List contains a link element called first.  
+ Each link carries a data field(s) and a link field called next.  
+ Each link is linked with its next link using its next link.  
+ Last link carries a link as null to mark the end of the list.  
+Types of Linked List  
+Following are the various types of linked list.  
+ Simple Linked List  − Item navigation is forward only.  
+ Doubly Linked List  − Items can be navigated forward and backward.  
+ Circular Linked List  − Last item contains link of the first element as next and 
+the first element has a link to the last element as previous.  
+Basic Operations  
+Following are the basic operations supported by a list.  
+ Insertion  − Adds an element at the beginning of the list.  
+ Deletion  − Deletes an element at the beginn ing of the list.  
+ Display  − Displays the complete list.  
+ Search  − Searches an element using the given key.  
+ Delete  − Deletes an element using the given key.  
+Insertion Operation  
+Adding a new node in linked list is a more than one step activity. We shall learn this 
+with diagrams here. First, create a node using the same structure and find the 
+location where it has to be inserted.  
+  
+Imagine that we are inserting a node  B (NewNode), between  A (LeftNode) 
+and C (RightNode). Then point B.next to C −  
+NewNode.next −> RightNode;  
+It should look like this −  
+  
+Now, the next node at the left should point to the new node.  
+LeftNode.next −> NewNode;  
+ 
+ 
+What is Single Linked List?  
+Simply a list  is a sequence of data, and the linked list is a sequence of data linked with each 
+other.  
+The formal definition of a single linked list is as follows...  
+Single linked list is a sequence of elements in which every element has link to its next 
+element in the sequence.  
+In any single linked list, the individual element is called as "Node". Every "Node" contains two 
+fields, data field, and the next field. The data field is used to store actual va lue of the node and 
+next field is used to store the address of next node in the sequence.  
+The graphical representation of a node in a single linked list is as follows...  
+ 
+Example  
+ 
+Operations on Single Linked List  
+The following operations are performed on a Single Linked List  
+ Insertion  
+ Deletion  
+ Display  
+Before we implement actual operations, first we need to set up an empty list. First, perform the 
+following steps before implementing actual operations.  
+ Step 1 - Include all the  header files  which are used in the program.  
+ Step 2 - Declare all the  user defined functions . 
+ Step 3 - Define a Node  structure with two members  data and next 
+ Step 4 - Define a Node pointer  'head'  and set it to  NULL . 
+ Step 5 - Implement the main method by displaying operations menu and make suitable 
+function calls in the main method to perform user selected operation.  
+Insertion  
+In a single linked list, the insertion operation can be performed in three ways. They are as 
+follows...  
+1. Inserting At Beginning of the list  
+2. Inserting At End of the list  
+3. Inserting At Specific location in the list  
+Inserting At Beginning of the list  
+We can use the following steps to insert a new node at beginning of the single linked list...  
+ Step 1 - Create a  newNode  with given value.  
+ Step 2 - Check whether list is  Empty  (head == NULL ) 
+ Step 3 - If it is  Empty  then, set  newNode→next  = NULL  and head  = newNode . 
+ Step 4 - If it is  Not Empty  then, set  newNode→next  = head  and head  = newNode . 
+Inserting At End of the list  
+We can use the following steps to insert a new node at end of t he single linked list...  
+ Step 1 - Create a  newNode  with given value and  newNode → next  as NULL . 
+ Step 2 - Check whether list is  Empty  (head  == NULL ). 
+ Step 3 - If it is  Empty  then, set  head  = newNode . 
+ Step 4 - If it is  Not Empty  then, define a node pointer  temp  and initialize with  head . 
+ Step 5 - Keep moving the  temp  to its next node until it reaches to the last node in the list 
+(until  temp → next  is equal to  NULL ). 
+ Step 6 - Set temp → next  = newNode . 
+Inserting At Specific location in the list (After a 
+Node)  
+We can use the following steps to insert a new node after a node in the single linked list...  
+ Step 1 - Create a  newNode  with given value.  
+ Step 2 - Check whether list is  Empty  (head  == NULL ) 
+ Step 3 - If it is  Empty  then, set  newNode → next  = NULL  and head  = newNode . 
+ Step 4 - If it is  Not Empty  then, define a node pointer  temp  and initialize with  head . 
+ Step 5 - Keep moving the  temp  to its next node until it reaches to the node after which 
+we want to insert the newNode (until  temp1 → data  is equal to  location , here location is 
+the node value after which we want to insert the newNode).  
+ Step 6 - Every time check whether  temp  is reached to last node or not. If it is reached to 
+last node then display  'Given node is not found in the list!!! Insertion not 
+possible!!!'  and terminate the function. Otherwise move the  temp  to next node.  
+ Step 7 - Finally, Set ' newNode → next  = temp → next ' and ' temp → next  = newNode ' 
+Deletion  
+In a single linked list, the deletion operation can be performed in three ways. They are as 
+follows...  
+1. Deleting from Beginning of the list  
+2. Deleting from End of the list  
+3. Deleting a Specific Node  
+Deleting from Beginning of the list  
+We can use the following steps to delete a node from be ginning of the single linked list...  
+ Step 1 - Check whether list is  Empty  (head  == NULL ) 
+ Step 2 - If it is  Empty  then, display  'List is Empty!!! Deletion is not possible'  and 
+terminate the function.  
+ Step 3 - If it is  Not Empty  then, define a Node pointer  'temp'  and initialize with  head . 
+ Step 4 - Check whether list is having only one node ( temp → next  == NULL ) 
+ Step 5 - If it is  TRUE  then set  head  = NULL  and delete  temp  (Setting  Empty  list 
+conditions)  
+ Step 6 - If it is  FALSE  then set  head  = temp → next , and delete  temp . Deleting from End of the list  
+We can use the following steps to delete a node from end of the single linked list...  
+ Step 1 - Check whether list is  Empty  (head  == NULL ) 
+ Step 2 - If it is  Empty  then, display  'List is Empty!!! Deletion is not possible'  and 
+terminate the function.  
+ Step 3 - If it is  Not Empty  then, define two Node pointers  'temp1'  and ' temp2'  and 
+initialize ' temp1 ' with  head . 
+ Step 4 - Check whether list has only one Node ( temp1 → next  == NULL ) 
+ Step 5 - If it is  TRUE . Then, set  head  = NULL  and delete  temp1 . And terminate the 
+function. (Setting  Empty  list condition)  
+ Step 6 - If it is  FALSE . Then, set ' temp2 = temp1  ' and move  temp1  to its next node. 
+Repeat the same until it reaches to the last node in the list. (until  temp1 → 
+next == NULL ) 
+ Step 7 - Finally, Set  temp2 → next  = NULL  and delete  temp1 . 
+Deleting a Specific Node from the list  
+We can use the following steps to delete a specific node from the single  linked list...  
+ Step 1 - Check whether list is  Empty  (head  == NULL ) 
+ Step 2 - If it is  Empty  then, display  'List is Empty!!! Deletion is not possible'  and 
+terminate the function.  
+ Step 3 - If it is  Not Empty  then, define two Node pointers  'temp1'  and ' temp2 ' and 
+initialize ' temp1 ' with  head . 
+ Step 4 - Keep moving the  temp1  until it reaches to the exact node to be deleted or to the 
+last node. And every time set ' temp2 = temp1 ' before moving the ' temp1 ' to its next 
+node.  
+ Step 5 - If it is reached to the last nod e then display  'Given node not found in the list! 
+Deletion not possible!!!' . And terminate the function.  
+ Step 6 - If it is reached to the exact node which we want to delete, then check whether 
+list is having only one node or not  
+ Step 7 - If list has only o ne node and that is the node to be deleted, then 
+set head  = NULL  and delete  temp1  (free(temp1) ). 
+ Step 8 - If list contains multiple nodes, then check whether  temp1  is the first node in the 
+list (temp1 == head ). 
+ Step 9 - If temp1  is the first node then move the  head  to the next node ( head = head → 
+next) and delete  temp1 . 
+ Step 10 - If temp1  is not first node then check whether it is last node in the list ( temp1 → 
+next == NULL ). 
+ Step 11 - If temp1  is last node then set  temp2 → next  = NULL  and 
+delete  temp1  (free(temp1) ). 
+ Step 12 - If temp1  is not first node and not last node then set  temp2 → next  = temp1 → 
+next and delete  temp1  (free(temp1) ). 
+Displaying a Single Linked List  
+We can use the following steps to display the elements of a single linked list...  
+ Step 1 - Check whether list is  Empty  (head  == NULL ) 
+ Step 2 - If it is  Empty  then, display  'List is Empty!!!'  and terminate the function.  
+ Step 3 - If it is  Not Empty  then, define a Node pointer  'temp'  and i nitialize with  head . 
+ Step 4 - Keep displaying  temp → data  with an arrow ( --->) until  temp  reaches to the last 
+node   Step 5 - Finally display  temp → data  with arrow pointing to  NULL  (temp → data ---> 
+NULL ). 
+Linked stack and Queue:  
+Linked stack  
+Instead of using array, we can also use linked list to implement stack. Linked list 
+allocates the memory dynamically. However, time complexity in both the scenario is 
+same for all the operations i.e. push, pop and peek.  
+In linked list implementation of sta ck, the nodes are maintained non -contiguously in 
+the memory. Each node contains a pointer to its immediate successor node in the 
+stack. Stack is said to be overflow if the space left in the memory heap is not enough 
+to create a node.  
+ 
+ 
+ 
+The top most node in the stack always contains null in its address field. Lets discuss 
+the way in which, each operation is performed in linked list implementation of stack.  
+Adding a node to the stack (Push operation)  
+Adding a node to the stack is referred to as  push  operation. Pushing an element to a 
+stack in linked list implementation is different from that of an array implementation. 
+In order to push an element onto the stack, the following steps are involved. OOPs 
+Concepts in Java  
+1. Create  a node first and allocate memory to it.  
+2. If the list is empty then the item is to be pushed as the start node of the list. This 
+includes assigning value to the data part of the node and assign null to the address 
+part of the node.  
+3. If there are some nodes i n the list already, then we have to add the new element in 
+the beginning of the list (to not violate the property of the stack). For this purpose, 
+assign the address of the starting element to the address field of the new node and 
+make the new node, the st arting node of the list.  
+ 
+ 
+Deleting a node from the stack (POP operation)  
+Deleting a node from the top of stack is referred to as  pop operation. 
+Deleting a node from the linked list implementation of stack is different from 
+that in the array implementation. In order to pop an element from the stack, 
+we need to follow the following steps :  
+1. Check for the underflow condition:  The underflow condition o ccurs when 
+we try to pop from an already empty stack. The stack will be empty if the 
+head pointer of the list points to null.  
+2. Adjust the head pointer accordingly:  In stack, the elements are popped 
+only from one end, therefore, the value stored in the head pointer must be 
+deleted and the node must be freed. The next node of the head node now 
+becomes the head node.  
+Display the nodes (Traversing)  
+Displaying all the nodes of a stack needs traversing all the nodes of the linked 
+list organized in the form of stac k. For this purpose, we need to follow the 
+following steps.  
+1. Copy the head pointer into a temporary pointer.  
+2. Move the temporary pointer through all the nodes of the list and print the 
+value field attached to every node.  
+Linked Queue  
+In a linked queue, each node of the queue consists of two parts i.e. data part and the 
+link part. Each element of the queue points to its immediate next element in the 
+memory.  
+In the linked queue, there are two pointers maintained in the memory i.e. front 
+point er and rear pointer. The front pointer contains the address of the starting 
+element of the queue while the rear pointer contains the address of the last element 
+of the queue. 46Diference, and JVM  
+Insertion and deletions are performed at rear and front end r espectively. If front and 
+rear both are NULL, it indicates that the queue is empty.  
+The linked representation of queue is shown in the following figure.  
+ 
+ 
+ 
+Operation on Linked Queue  
+There are two basic operations which can be implemented on the linked 
+queues. The operations are Insertion and Deletion.  
+The insert operation append the queue by adding an element to the end of the 
+queue. The new element will be the last element of the queue.  
+Firstly, allocate the memor y for the new node ptr by using the following statement.  
+There can be the two scenario of inserting this new node ptr into the linked queue.  
+we insert element into an empty queue. In this case, the condition  front = 
+NULL  becomes true. Now, the new element will be added as the only element of the 
+queue and the next pointer of front and rear pointer both, will point to NULL.  
+Deletion operation removes the element that is first inserted among all the queue 
+elements. Firstly, we need to check either the list is  empty or not. The condition front 
+== NULL becomes true if the list is empty, in this case , we simply write underflow on 
+the console and make exit. Otherwise, we will delete the element that is pointed by 
+the pointer front. For this purpose, copy the node  pointed by the front pointer into 
+the pointer ptr. Now, shift the front pointer, point to its next node and free the node 
+pointed by the node ptr.  
+ 
+Unit II   
+Trees – Binary tree representations – Tree Traversal – Threaded Binary Trees – Binary Tree 
+Representation of Trees – Graphs and Representations – Traversals, Connected 
+Components and Spanning Trees – Shortest Paths and Transitive closure – Activity 
+Networks – Topological Sort and Critical Paths.  
+ 
+ Trees: Non -Linear data structure  
+ A data structure is said to be linear if its elements form a sequence or a linear list. 
+Previous  
+linear data structures that we have studied like an array, stacks , queues and linked lists 
+organize data in linear order. A data structure is said to be non linear if its elements form a 
+hierarchical classification where, data items appear at various levels.  
+Trees and Graphs are widely used non -linear data structures. Tree and graph structures 
+represent hierarchical relationship between individual data elements. Graphs are nothing but 
+trees with certain restrictions removed.  
+Trees represent a special case of more general structures known as graphs. In a graph, 
+there is  no restrictions on the number of links that can enter or leave a node, and cycles may be 
+presen t in the graph. The figure  shows a tree and a non -tree.  
+ 
+Tree is a popular data structure used in wide range of applications. A tree data structure 
+can be def ined as follows...  
+Tree is a non -linear data structure which organizes data in hierarchical structure and 
+this is a recursive definition.  
+A tree data structure can also be defined as follows...  
+A tree is a finite set of one or more nodes such that:  
+Ther e is a specially designated node called the root. The remaining nodes are partitioned 
+into n>=0 disjoint sets T1, ..., Tn, where each of these sets is a tree. We call T1, ..., Tn are the 
+subtrees of the root.  
+ 
+A tree is hierarchical collection of nodes. One of the nodes, known as the root, is at the top of the 
+hierarchy. Each node can have at most one link coming into it. The node where the link originates 
+is called the parent node. The root node has no parent. The links leaving a node (any number of 
+links are allowed) point to child nodes. Trees are recursive structures. Each child node is itself the 
+root of a subtree. At the bottom of the tree are leaf nodes, which have no children.  
+ 
+Advantages of trees  
+Trees  are so useful and frequently used, because they have some very serious advantages:  
+Trees reflect structural relationships in the data  
+Trees are used to represent hierarchies  
+Trees provide an efficient insertion and searching  
+Trees are very fle xible data, allowing to move sub trees around with minimum effort  
+ 
+Introduction Terminology   
+In a Tree, Every individual element is called as Node. Node in a tree data structure, stores 
+the actual data of that particular element and link to next element in hierarchical structure. 
+Example  
+ 
+1. Root  
+In a tree data structure, the first node is called as Root Node. Every tree must have root node. We 
+can say that root node is the origin of tree data structure. In any tree, there must be only one root 
+node. W e never have multiple root nodes in a tree. In above tree, A is a Root node  
+2. Edge  
+In a tree data structure, the connecting link between any two nodes is called as EDGE. In a tree 
+with 'N' number of nodes there will be a maximum of 'N -1' number of edges .  
+3. Parent  
+In a tree data structure, the node which is predecessor of any node is called as PARENT NODE. 
+In simple words, the node which has branch from it to any other node is called as parent node. 
+Parent node can also be defined as "The node which ha s child / children". e.g., Parent (A,B,C,D).  
+4. Child  
+In a tree data structure, the node which is descendant of any node is called as CHILD Node. In 
+simple words, the node which has a link from its parent node is called as child node. In a tree, any 
+parent node can have any number of child nodes. In a tree, all the nodes except root are child 
+nodes. e.g., Children of D are (H, I,J).  
+5. Siblings  
+In a tree data structure, nodes which belong to same Parent are called as SIBLINGS. In simple 
+words, the nodes  with same parent are called as Sibling nodes. Ex: Siblings (B,C, D)  
+6. Leaf  
+In a tree data structure, the node which does not have a child (or) node with degree zero is called 
+as LEAF Node. In simple words, a leaf is a node with no child.   In a tree data structure, the leaf 
+nodes are also called as External Nodes. External node is also a node with no child. In a tree, leaf 
+node is also called as 'Terminal' node. Ex: (K,L,F,G,M,I,J)  
+7. Internal Nodes  
+In a tree data structure, the node which has atlea st one child is called as INTERNAL Node. In 
+simple words, an internal node is a node with atleast one child. In a tree data structure, nodes 
+other than leaf nodes are called as Internal Nodes. The root node is also said to be Internal Node 
+if the tree has more than one node. Internal nodes are also called as 'Non -Terminal' nodes. 
+Ex:B,C,D,E,H  
+8. Degree  
+In a tree data structure, the total number of children of a node (or)number of subtrees  of a node is 
+called as DEGREE of that Node. In simple words, the Degree of a node is total number of 
+children it has. The highest degree of a node among all the nodes in a tree is called as 'Degree of 
+Tree'  
+ 
+9. Level  
+In a tree data structure, the root node is said to be at Level 0 and the children of root node are at 
+Level 1 and the children of the nodes which are at Level 1 will be at Level 2 and so on... In 
+simple words, in a tree each step from top to bottom is called as a Level and the Level count s tarts 
+with '0' and incremented by one at each level (Step). Some authors start root level with 1.  
+10. Height  
+In a tree data structure, the total number of edges from leaf node to a particular node in the 
+longest path is called as HEIGHT of that Node. In a tree, height of the root node is said to be 
+height of the tree. In a tree, height of all leaf nodes is '0'.  
+11. Depth  
+In a tree data structure, the total number of edges from root node to a particular node is called as 
+DEPTH of that Node. In a tree, th e total number of edges from root node to a leaf node in the 
+longest path is said to be Depth of the tree. In simple words, the highest depth of any leaf node in 
+a tree is said to be depth of that tree. In a tree, depth of the root node is '0'.  
+12. Path  
+In a tree data structure, the sequence of Nodes and Edges from one node to another node is called 
+as PATH between that two Nodes. Length of a Path is total number of nodes in that path. In 
+below example the path A - B - E - J has length 4.  
+ 
+13. Sub Tree  
+In a tree data structure, each child from a node forms a subtree recursively. Every child node will 
+form a subtree on its parent node
+ 
+ 
+Tree Representations  
+A tree data structure can be represented in two methods. Those methods are as follows...  
+1.List R epresentation  
+2. Left Child - Right Sibling Representation  
+Consider the following tree...  
+ 
+1. List Representation  
+In this representation, we use two types of nodes one for representing the node with data and 
+another for representing only references. We start with a node with data from root node in the 
+tree. Then it is linked to an internal node through a reference node  and is linked to any other node 
+directly. This process repeats for all the nodes in the tree.  
+The above tree example can be represented using List representation as follows...  
+ 
+Fig: List representation of above Tree  
+ 
+Fig: Possible node structure for a tree of degree k  
+ 
+2. Left Child - Right Sibling Representation  
+In this representation, we use list with one type of node which consists of three fields namely 
+Data field, Left child reference field and Right sibling ref erence field. Data field stores the actual 
+value of a node, left reference field stores the address of the left child and right reference field 
+stores the address of the right sibling node. Graphical representation of that node is as follows...  
+                                      
+In this representation, every node's data field stores the actual value of that node. If that node has 
+left child, then left reference field stores the address of that left child node otherwise that field 
+stores NULL. If that n ode has right sibling then right reference field stores the address of right 
+sibling node otherwise that field stores NULL. The above tree example can be represented using 
+Left Child - Right Sibling representation as follows...  
+                                    
+Representation as a Degree –Two Tree  
+To obtain degree -two tree representation of a tree, rotate the right - sibling pointers in the left 
+child -right sibling tree clockwise by 45 degrees. In a degree -two representation, the two children 
+of anode are referred as left and right children.  
+                      
+Binary Trees   
+             In a normal tree, every node can have any number of children. Binary tree is a special 
+type of tree data structure in which every node can have a maximum of 2 children. One is known 
+as left child and the other is known as right child.  
+~A tree in which every node can have a maximum of two children is called as Binary Tree.  
+~In a binary tree, every node can have either 0 children or 1 child or 2 children but not more than 
+2 children. Example  
+ 
+ 
+There are different  types of binary trees and they are...  
+1. Strictly Binary Tree  
+In a binary tree, every node can have a maximum of two children. But in strictly binary tree, 
+every node should have exactly two children or none. That means every internal node must have 
+exactly two children. A strictly Binary Tree can be defined as follows...  
+A binary tree in which every node has either two or zero number of children is called Strictly 
+Binary Tree. Strictly binary tree is also called as Full Binary Tree or Proper Binary Tree or 2 -
+Tree  
+2. Complete Binary Tree  
+In a binary tree, every node can h ave a maximum of two children. But in strictly binary tree, 
+every node should have exactly two children or none and in complete binary tree all the nodes 
+must have exactly two children and at every level of complete binary tree there must be 2 level 
+number  of nodes. For example at level 2 there must be 2^2 = 4 nodes and at level 3 there must be 
+2^3 = 8 nodes.  
+A binary tree in which every internal node has exactly two children and all leaf nodes are at same 
+level is called Complete Binary Tree.  
+Complete bi nary tree is also called as Perfect Binary Tree  
+        
+ 
+3. Extended Binary Tree  
+A binary tree can be converted into Full Binary tree by adding dummy nodes to existing nodes 
+wherever required.  
+The full binary tree obtained by adding dummy nodes to a bi nary tree is called as Extended 
+Binary Tree.  
+ 
+Abstract Data Type  
+Definition: A binary tree is a finite set of nodes that is either empty or consists of a root and two 
+disjoint binary trees called left subtree and right subtree.  
+ADT contains specification for the binary tree ADT.  
+Structure Binary_Tree (abbreviated BinTree ) is  
+objects: a finite set of nodes either empty or consisting of a root node, left Binary_Tree , and right 
+Binary_Tree .  
+Functions:  
+for all bt, bt1, bt2 
+ BinTr ee, item 
+ element  
+Bintree Create()::= creates an empty binary tree  
+Boolean IsEmpty( bt)::= if ( bt==empty binary tree) return TRUE else return FALSE  
+BinTree MakeBT( bt1, item, bt2)::= return a binary tree whose left subtree is bt1, whose right 
+subtree is bt2, and whose root node contains the data item  
+Bintree Lchild( bt)::= if (IsEmpty( bt)) return error else return the left subtree of bt  
+element Data( bt)::= if (IsEmpty( bt)) return error else return the data in the root node of bt  
+Bintree Rchild( bt)::= if  (IsEmpty( bt)) return error else return the right subtree of bt 
+                       
+ 
+Differences between A Tree and A Binary Tree  
+• The subtrees of a binary tree are ordered; those of a tree are not ordered.  
+                                               
+Above two trees are different when viewed as binary trees. But same when viewed as trees.  
+Properties of Binary Trees  
+1.Maximum Number of Nodes in BT  
+ maximum number of nodes on level i of a binary tree is 2 i-1, i>=1.  
+k-1, k>=1.  
+ 
+Proof By Induction:  
+Induction Base: The root is the only node on level i=1.Hence ,the maximum number of nodes o n 
+level i=1 is 2 i-1=20=1.  
+Induction Hypothesis: Let I be an arbitrary positive integer greater than 1.Assume that maximum 
+number of nodes on level i -1 is 2 i-2.  
+Induction Step: The maximum number of nodes on level i -1 is 2 i-2 by the induction hypothesis. 
+Since each node in a binary tree has a maximum degree of 2,the maximum number of nodes on 
+level i is two times the maximum number of nodes on level i -1,or 2 i-1.  
+The maximum number of nodes in a binary tree of depth k is  
+2.Relation between number of leaf nodes and degree -2 nodes : For any nonempty binary tree, 
+T, if n 0 is the number of leaf nodes and n 2 the number of nodes of degree 2, then n 0=n2+1.  
+PROOF: Let n and B denote the total number of nodes and branches in T. Let n0, n1, n2 represent 
+the nodes wi th zero children, single child, and two children respectively.  
+B+1=n  B=n1+2n2 ==> n1+2n2+1= n,  
+n1+2n2+1= n0+n1+n2 ==> n0=n2+1  
+3. A full binary tree of depth k is a binary tree of depth k having 2 -1 nodes, k>=0.  
+A binary tree with n nodes and depth k is complete iff its nodes correspond to the nodes numbered 
+from 1 to n in the full binary tree of depth k.  
+ 
+Binary Tree Representation  
+A binary tree data structure is represented using two methods. Those methods are  
+1)Array Representation  
+2)Linked  List Representation  
+1)Array Representation:  In array representation of binary tree, we use a one dimensional array 
+(1-D Array) to represent a binary tree. To represent a binary tree of depth 'n' using array 
+representation, we need one dimensional array with a maximum size of  
+A complete binary tree  with n nodes (depth = log n + 1) is represented sequentially, then for any 
+node with index i, 1<= i<=n, we have: a) parent (i) is at i/2 if i!=1. If i=1, i is at the root and has no 
+parent. b) left_child (i) ia at 2 i if 2i<=n. If 2 i>n, then i has no left child. c) right_child (i) is at 2 i+1 
+if 2i +1 <= n. If 2 i +1 >n, then i has no right child  
+ 
+2. Linked Representation : We use linked list to represent a binary tree. In a linked list, every 
+node consists of three fields. First field, for storing  left child address, second for storing actual 
+data and third for storing right child address. In this linked list representation, a node has the 
+following structure...  
+ 
+typedef struct node *tree_pointer;  
+typedef struct node  
+{  
+int data;  
+tree_pointer left_child, right_child;  
+};. 
+ 
+Binary Tree Traversals  
+When we wanted to display a binary tree, we need to follow some order in which all the nodes of 
+that binary tree must be displayed. In any binary tree displaying order of nodes depends on the 
+traversal method. Displaying (or) visiting order of nodes in a b inary tree is called as Binary Tree 
+Traversal.  
+There are three types of binary tree traversals.  
+1)In - Order Traversal   2)Pre - Order Traversal  3)Post - Order Traversal  
+Binary Tree Traversals  
+  • 1. In - Order Traversal ( leftChild - root - rightChild )  
+ I - D - J - B - F - A - G - K - C – H  
+• 2. Pre - Order Traversal ( r oot - leftChild - rightChild )  
+ A - B - D - I - J - F - C - G - K – H  
+• 3. Post - Order Traversal ( l eftChild - rightChild - root )  
+ I - J - D - F - B - K - G - H - C – A 
+ 
+1. In - Order Traversal ( leftChild - root - rightChild )  
+In In -Order traversal, the root node is visited between left child and right child. In this traversal, 
+the left child node is visited first, then the root node is visited and later we go for visiti ng right 
+child node. This in -order traversal is applicable for every root node of all subtrees in the tree. This 
+is performed recursively for all nodes in the tree. In the above example of binary tree, first we try 
+to visit left child of root node 'A', but  A's left child is a root node for left subtree. so we try to visit 
+its (B's) left child 'D' and again D is a root for subtree with nodes D, I and J. So we try to visit its 
+left child 'I' and it is the left most child. So first we  visit 'I'then go  for its root node 'D' and later 
+we visit D's right child 'J'. With this we have completed the left part of node B. Then visit 'B' and 
+next B's right child 'F' is visited. With this we have completed left part of node A. Then visit root 
+node 'A'. With this  we have completed left and root parts of node A. Then we go for right part of 
+the node A. In right of A again there is a subtree with root C. So go for left child of C and again it 
+is a subtree with root G. But G does not have left part so we visit 'G' an d then visit G's right child 
+K. With this we have completed the left part of node C. Then visit root node'C' and next visit C's 
+right child 'H' which is the right most child in the tree so we stop the process. That means here we 
+have visited in the order o f I - D - J - B - F - A - G - K - C - H using In -Order Traversal.  
+In-Order Traversal for above example of binary tree is  
+I - D - J - B - F - A - G - K - C – H  
+ 
+Algorithm  
+Until all nodes are traversed −  
+Step 1 − Recursively traverse left subtree.  
+Step 2 − Visit root node.  
+Step 3 − Recursively traverse right subtree.  
+void inorder(tree_pointer ptr) /* inorder tree traversal */ Recursive  
+{  
+if (ptr) {  
+inorder(ptr ->left_child);  
+printf(―%d‖, ptr ->data);  
+indorder(ptr ->right_child);  
+}  
+}  
+ 
+2. Pre - Order Traversal ( root - leftChild - rightChild )  
+In Pre -Order traversal, the root node is visited before left child and right child nodes. In this 
+traversal, the root node is visited first, then its left child and later its right child. This pre -order 
+traversal is applicable for every root node of all subtrees in the tree. In the above example of 
+binary tree, first we visit root node 'A' then visit its left child 'B' which is a root for D and F. So 
+we visit B's left child 'D' and again D is a roo t for I and J. So we visit D's left child'I' which is the 
+left most child. So next we go for visiting D's right child 'J'. With this we have completed root, 
+left and right parts of node D and root, left parts of node B. Next visit B's right child'F'. With this 
+we have completed root and left parts of node A. So we go for A's right child 'C' which is a root 
+node for G and H. After visiting C, we go for its left child 'G' which is a root  for node K. So next 
+we visit left of G, but it does not have left child so we go for G's right child 'K'. With this we have 
+completed node C's root and left parts. Next visit C's right child 'H' which is the right most child 
+in the tree. So we stop the pro cess. That means here we have visited in the order of A -B-D-I-J-F-
+C-G-K-H using Pre -Order Traversal.  
+ 
+Algorithm  
+Until all nodes are traversed −  
+Step 1 − Visit root node.  
+Step 2 − Recursively traverse left subtree.  
+Step 3 − Recursively traverse right s ubtree.  
+void preorder(tree_pointer ptr) /* preorder tree traversal */ Recursive  
+{  
+if (ptr) {  
+printf(―%d‖, ptr ->data);  
+preorder(ptr ->left_child);  
+preorder(ptr ->right_child);  
+}  
+}  
+ 
+ 
+ 
+3. Post - Order Traversal ( leftChild - rightChild - root )  
+In Pos t-Order traversal, the root node is visited after left child and right child. In this traversal, 
+left child node is visited first, then its right child and then its root node. This is recursively 
+performed until the right most node is visited. Here we have  visited in the order of I - J - D - F - B 
+- K - G - H - C - A using Post -Order Traversal.  
+ 
+Algorithm  
+Until all nodes are traversed −  
+Step 1 − Recursively traverse left subtree.  
+Step 2 − Recursively traverse right subtree.  
+Step 3 − Visit root node.  
+void postorder(tree_pointer ptr) /* postorder tree traversal */ Recursive  
+{  
+if (ptr) {  
+postorder(ptr ->left_child);  
+postorder(ptr ->right_child);  
+printf(―%d‖, ptr ->data);  
+}  
+}  
+Binary Search Trees  
+Binary Search Tree Representation  
+Binary Search tree exhibits a special behavior. A node's left child must have value less than its 
+parent's value and node's right child must have value greater than it's parent value.  
+                                             
+ 
+We're going to implement tree using node object and connecting them through references.  
+ 
+Definition:  A binary search tree (BST) is a binary tree. It may be empty. If it is not empty,then 
+all nodes follows the below mentioned properties −  
+ 
+keys in a nonempty left subtree (right subtree) are smaller (larger) than the key in the root 
+of subtree.  
+ 
+ 
+ 
+left sub -tree and right sub -tree and can be defined as −  
+left_subtree (keys) ≤ node (key) ≤ right_subtree (keys)  
+ 
+Fig: Example Binary Search Trees  
+ 
+ 
+Graph  
+A graph G = (V,E) is composed of:  
+V: set of vertices  
+E: set of edges connecting the vertices in V  
+• An edge e = (u,v) is a pair of vertices  
+Example:  
+  
+V= {a,b,c,d,e}  
+E={(a,b),(a,c),(a,d),(b,e),(c,d),(c,e),(d,e)}  
+ 
+Graph Terminology  
+Undirected Graph:  
+An undirected graph is one in which the pair of vertices in a edge is unordered, 
+(v0, v1) = (v1 ,v0)  
+Directed Graph:  
+A directed graph is one in which each edge is a directed pair of vertices, <v0, 
+v1> != <v1,v0>  
+                            
+ 
+Complete Graph:  
+A complete graph is a graph that has the maximum number of edges for undirected graph with  
+n vertices, the maximum number of edges is n(n -1)/2 for directed graph with n vertices, the 
+maximum number of edges is n(n -1) 
+                                                                         
+Adjacent and Incident:  
+If (v0, v1) is an edge in an undirected graph,  
+– v0 and v1 are adjacent  
+– The edge (v0, v1) is incident on vertices v0 and v1  
+ 
+If <v0, v1> is an edge in a directed graph  
+– v0 is adjacent to v1, and v1 is adjacent from v0  
+– The edge <v0, v1> is inciden t on v0 and v1  
+ 
+Multigraph:  
+In a multigraph, there can be more than one edge from vertex P to 
+vertex Q. In a simple graph there is at most one.  
+                                       
+Graph with self edge or graph with feedback loops:  
+A self loop is an  edge that connects a vertex to itself. In some graph it makes sense to allow self -
+loops; in some it doesn't.  
+                                                                     
+Subgraph:  
+A subgraph of G is a graph G‟ such that V(G‟) is a subset of V(G)  and E(G‟) is a 
+subset of E(G)  
+  
+Path:  
+A path from vertex vp to vertex vq in a graph G, is a sequence of vertices, vp, 
+vi1, vi2, ..., vin, vq, such that (vp, vi1), (vi1, vi2), ..., (vin, vq) are edges in an 
+undirected graph  
+The length of a path is the n umber of edges on it.  
+Simple Path and Style:  
+A simple path is a path in which all vertices, except possibly the first and the 
+last, are distinct.  
+A cycle is a simple path in which the first and the last vertices are the same  
+In an undirected graph G, t wo vertices, v0 and v1, are connected if there is a 
+path in G from v0 to v1.  
+An undirected graph is connected if, for every pair of distinct vertices vi, vj, 
+there is a path from vi to vj  
+                           
+Degree  
+The degree of a vertex is the number of edges incident to that vertex  
+For directed graph,  
+– the in-degree of a vertex v is the number of edges that have v as the head  
+– the out-degree of a vertex v is the number of edges that have v as the tail  
+– if di is the degree of a vertex i in a graph G with n vertices and e edges, the 
+number of edges is  
+                
+Example:  
+ 
+ADT for Graph  
+Graph ADT is  
+Data structures: a nonempty set of vertices and a set of undirected  
+edges, where each edge is a pai r of vertices  
+Functions: for all graph 
+ Graph , v, v1 and v2 
+Vertices  
+ Graph Create()::=return an empty graph  
+ Graph InsertVertex( graph , v)::= return a graph with v inserted. V  
+has no incident edge.  
+ Graph InsertEdge( graph , v1,v2)::= return a graph with new edge between 
+v1 and v2  
+ Graph DeleteVertex( graph , v)::= return a graph in which v and all edges 
+incident to it are removed  
+ Graph DeleteEdge( graph , v1, v2)::=return a graph in which the edge  
+(v1, v2) is removed  
+ Boolean IsEmpty( graph )::= if ( graph ==empty graph ) return TRUE  
+else return FALSE  
+ List Adjacent( graph ,v)::= return a list of all vertices that are adjacent  
+to v  
+Graph Representations  
+Graph can be represented in the following ways:  
+a) Adjacency Matrix  
+b) Adjac ency Lists  
+c) Adjacency Multilists  
+a) Adjacency Matrix  
+Let G=(V,E) be a graph with n vertices.  
+The adjacency matrix of G is a two -dimensional by array, say adj_mat.  
+If the edge (vi, vj) is in E(G), adj_mat[i][j]=1  
+If there is no such edge in E(G), ad j_mat[i][j]=0  
+The adjacency matrix for an undirected graph is symmetric; the adjacency matrix for a digraph 
+need not be symmetric  
+Examples for Adjacency Matrix:  
+   
+  
+Merits of Adjacency Matrix  
+From the adjacency matrix, to determine the connection of vertices is easy  
+The degree of a vertex is  
+For a digraph, the row sum is the out_degree, while the column sum is the 
+in_degree  
+                   
+b) Adjacency Lists  
+Each row in adjacency matrix  is represented as an adjacency list.  
+   
+  
+ 
+ 
+Interesting Operations  
+ degree of a vertex in an undirected graph  
+# of nodes in adjacency list  
+ # of edges in a graph  
+determined in O(n+e)  
+ out-degree of a vertex in a directed graph  
+# of nodes in its adjacency list  
+ in-degree of a vertex in a directed graph  
+traverse the whole data structure  
+Orthogonal representation for graph G3  
+               
+ 
+                                   
+ 
+c) Adjacency Multilists  
+An edge in an undirected graph is represented by two nodes in adjacency list 
+representation.  
+Adjacency Multilists  
+– lists in which nodes may be shared among several lists. (an edge is shared by 
+two different paths)  
+ 
+Example for Adjacency Multlists  
+Lists: vertex 0: M1 ->M2->M3, vertex 1: M1 ->M4->M5  
+vertex 2: M2 ->M4->M6, vertex 3: M3 ->M5->M6  
+       
+ 
+Some Graph Operations  
+The following are some graph operations:  
+a) Traversal Given G=(V,E) and vertex v, find all w
+ V, such that w connects v.  
+– Depth First Search (DFS) preorder tree traversal  
+– Breadth First Search (BFS) level order tree traversal  
+b) Spanning Trees  
+c) Connected Components  
+Graph G and its adjacency lists  
+  
+depth first search: v0, v1, v3, v7, v4, v5, v2, v6  
+breadth first sear ch: v0, v1, v2, v3, v4, v5, v6, v7  
+ 
+Depth First Search  
+Depth First Search (DFS) algorithm traverses a graph in a depthward motion 
+and uses a stack to remember to get the next vertex to start a search, when a 
+dead end occurs in any iteration.  
+                                                       
+As in the example given above, DFS algorithm traverses from A to B to C to D first then to E, then 
+to F and lastly to G. It employs the following rules.  
+ Rule 1 − Visit the adjacent unvisited vertex. Mark it as visited. Display it. Push 
+it in a stack.  
+ Rule 2 − If no adjacent vertex is found, pop up a vertex from the stack. (It will 
+pop up all the vertices from the stack, which do not have adjacent vertices.)  
+ Rule 3 − Repeat Rule 1 and Rule 2 until the stack is empty.  
+Step 
+ Traversal  
+ Description  
+ 
+1 
+ Initialize the 
+stack.  
+ 
+ 
+2 
+ Mark S as visited and put it onto 
+the stack. Explore any unvisited 
+adjacent node from S. We have 
+three nodes and we can pick any 
+of them. For this example, we 
+shall take the node in an 
+alphabetical order.  
+ 
+3 
+ Mark A as visited and put it onto 
+the stack. Explore any unvisited 
+adjacent node from A. Both S and 
+D are adjacent to A but we are 
+concerned for unvisited nodes 
+only. 
+ 
+4 
+ Visit D and mark it as visited 
+and put onto the stack. Here, 
+we have B and C nodes, which 
+are adjacent to D and both are 
+unvisited. However, we shall 
+again choose in an alphabetical 
+order.  
+ 
+ 
+5 
+ We choose B, mark it as visited 
+and put onto the stack. Here B 
+does not have any unvisited 
+adjacent node. So, we pop B from 
+the stack.  
+ 
+6 
+ We check the stack top for return 
+to the previous node and check if 
+it has any unvisited nodes. Here, 
+we find D to be on the top of the 
+stack.  
+ 
+7 
+ Only unvisited adjacent node is 
+from D is C now. So we visit C, 
+mark it as visited and put it onto 
+the stack.  
+ 
+ 
+As C does not have any unvisited adjacent node so we keep popping the stack 
+until we find a node that has an unvisited adjacent node. In this case, there's 
+none and we keep popping until the stack is empty.  
+ 
+Breadth First Search  
+Breadth First Search (BFS) alg orithm traverses a graph in a breadthward motion and uses a 
+queue to remember to get the next vertex to start a search, when a dead end occurs in any 
+iteration.  
+                                                  
+As in the example given above, BFS algorithm  traverses from A to B to E to F 
+first then to C and G lastly to D. It employs the following rules.  
+Rule 1 − Visit the adjacent unvisited vertex. Mark it as visited. Display it. Insert it in 
+a queue.  
+Rule 2 − If no adjacent vertex is found, remove the first vertex from the queue.  
+Rule 3 − Repeat Rule 1 and Rule 2 until the queue is empty.  
+Step  
+ Traversal  
+ Description  
+ 
+1 
+ Initialize the queue.  
+ 
+2 
+ We start from visiting S 
+(starting node), and mark it 
+as visited.  
+ 
+3 
+ We then see an unvisited 
+adjacent node from S. In 
+this example, we have three 
+nodes but alphabetically we 
+choose A, mark it as visited 
+and enqueue it.  
+ 
+4 
+ Next, the unvisited adjacent 
+node from S is B. We mark 
+it as visited and enqueue it.  
+ 
+5 
+ Next, the unvisited adjacent 
+node from S is C. We mark 
+it as visited and enqueue it.  
+ 
+6 
+ Now, S is left with no 
+unvisited adjacent nodes. 
+So, we dequeue and find A.  
+ 
+7 
+ From A we have D as 
+unvisited adjacent node. We 
+mark it as visited and 
+enqueue it.  
+ 
+ 
+At this stage, we are left with no unmarked (unvisited) nodes. But as per the 
+algorithm we keep on dequeuing in order to get all unvisited nodes. When the 
+queue gets emptied, the program  is over.  
+ 
+Spanning Trees  
+When graph G is connected, a depth first or breadth first search starting at any 
+vertex will visit all vertices in G  
+A spanning tree is any tree that consists solely of edges in G and that includes 
+all the vertices  
+E(G): T (tree edges) + N (nontree edges) where T: set of edges used during search 
+N: set of remaining edges  
+Examples of Spanning Tree  
+ 
+Either dfs or bfs can be used to create a spanning tree  
+– When dfs  is used, the resulting spanning tree is known as a depth first 
+spanning tree  
+– When bfs is used, the resulting spanning tree is known as a breadth first 
+spanning tree  
+ 
+While adding a nontree edge into any spanning tree, this will create a cycle  
+DFS VS BFS Spanning Tree  
+ 
+ 
+A spanning tree is a minimal subgraph, G‟, of G such that V(G‟)=V(G) and G‟ is 
+connected.  
+Any connected graph with n vertices must have at least n -1 edges.  
+A biconnected graph is a connected graph that hasno articulation points.  
+ 
+    
+ 
+biconnected component: a maximal connected subgraph H (no subgraph that is both 
+biconnected and properly contains H).  
+           
+ 
+Minimum Cost Spanning Tree  
+ cost of a spanning tree of a weighted undirected graph is the sum of the 
+costs of the edges in the spanning tree  
+ 
+ 
+– Kruskal  
+– Prim  
+– Sollin  
+ 
+Kruskal’s Algorithm  
+Build a minimum cost spanning tree T by adding edges to T one at a time  
+Select the edges for inclusion in T in nondecreasing order of the cost  
+An edge is added to T if it does not form a cycle  
+Since G is connected and has n > 0 vert ices, exactly n -1 edges will be selected  
+Kruskal’s algorithm  
+1. Sort all the edges in non -decreasing order of their weight.  
+2. Pick the smallest edge. Check if it forms a cycle with the spanning 
+tree formed so far. If cycle is not formed, include this e dge. Else, 
+discard it.  
+3. Repeat step#2 until there are (V -1) edges in the spanning tree.  
+ 
+Psuedocode for Kruskal’s Algorithm  
+Kruskal(G, V, E)  
+{  
+T= {};  
+while(T contains less than n -1 edges && E is not empty)  
+{  
+choose a least cost edge (v,w) from E;   
+delete (v,w) from E;  
+if ((v,w) does not create a cycle in T)  
+add (v,w) to T  
+else  
+discard (v,w);  
+}  
+if (T contains fewer than n -1 edges)  
+printf(“No spanning tree \n”);  
+} 
+Examples for Kruskal’s Algorithm  
+                                  
+ 
+ 
+Prim’s Algorithm  
+Prim's algorithm to find minimum cost spanning tree (as Kruskal's algorithm) 
+uses the greedy approach. Prim's algorithm shares a similarity with the 
+shortest path first algorithms.  
+Prim's algorithm, in contrast with Kruskal's algorithm, treats the nodes as a 
+single tree and keeps on adding new nodes to the spanning tree from the given 
+graph.  
+To contrast with Kruskal's algorithm and to understand Prim's algorithm better, 
+we shall use the same example −  
+Steps of Prim's Algorithm: The foll owing are the main 3 steps of the Prim's 
+Algorithm:  
+1. Begin with any vertex which you think would be suitable and add it to the 
+tree.  
+2. Find an edge that connects any vertex in the tree to any vertex that is not in 
+the tree. Note that, we don't have to  form cycles.  
+3. Stop when n - 1 edges have been added to the tree.  
+ 
+Psuedocode of Prim’s algorithm  
+Prims(G,V,E)  
+{  
+T={};  
+TV={0};  
+while (T contains fewer than n -1 edges)  
+{  
+let (u,v) be a least cost edge such that and if (there is no such edge ) bre ak;  
+add v to TV;  
+add (u,v) to T;  
+}  
+if (T contains fewer than n -1 edges)  
+printf(“No spanning tree \n”);  
+} 
+ 
+ 
+      
+ 
+ 
+ 
+ 
+#define MAX_VERTICES 6  
+int cost[][MAX_VERTICES]=  
+{{ 0, 50, 10, 1000, 45, 1000},  
+{1000, 0, 15, 1000, 10, 1000},  
+{ 20, 1000, 0, 15, 1000, 1000},  
+{1000, 20, 1000, 0, 35, 1000},  
+{1000, 1000, 30, 1000, 0, 1000},  
+{1000, 1000, 1000, 3, 1000, 0}};  
+int distance[MAX_VERTICES];  
+short int found{MAX_VERTICES];  
+int n = MAX_VERTICES ; 
+void shortestpath(int v, int cost[][MAX_ERXT ICES], int distance[], int n, 
+short int found[])  
+{  
+int i, u, w;  
+for (i=0; i<n; i++)  
+{  
+found[i] = FALSE;  
+distance[i] = cost[v][i];  
+}  
+found[v] = TRUE;  
+distance[v] = 0;  
+for (i=0; i<n -2; i++)  
+{  
+determine n -1 paths from v  
+u = choose( distance, n, found);  
+found[u] = TRUE;  
+for (w=0; w<n; w++)  
+if (!found[w])  
+if (distance[u]+cost[u][w]<distance[w])  
+distance[w] = distance[u]+cost[u][w];  
+}  
+}  
+ 
+ 
+All Pairs Shortest Paths  
+All pairs shortest path algorithm finds the shortest paths betwee n all pairs of 
+vertices.  
+ 
+Solution 1  
+3)  
+ 
+Solution 2  
+ 
+iently large 
+number  
+vertices with an index <= k  
+index greater than n -1  
+t[i][j]  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Graph with negative cycle   
+Algorithm for All Pairs Shortest Paths  
+void allcosts(int cost[][MAX_VERTICES], int distance[][MAX_VERTICES], int n)  
+{  
+int i, j, k;  
+for (i=0; i<n; i++)  
+for (j=0; j<n; j++) distance[i][j] = cost[i][j];  
+for (k=0; k<n; k++)  
+for (i=0; i<n; i++)  
+for (j=0; j<n; j++)  
+if (distance[i][k]+distance[k][j] < distance[i][j])  
+distance[i][j]= distance[i][k]+distance[k][j ];  
+}  
+Example  
+Directed graph and its cost matrix  
+ 
+ 
+Transitive Closure  
+           Goal: given a graph with unweighted edges, determine if there is a path 
+from i to j for all i and j.  
+(1) Require positive path (> 0) lengths. transitive closure matrix  
+reflexive transitive closure matrix  
+ 
+ 
+ 
+ 
+Unit III  
+Algorithms – Priority Queues - Heaps – Heap Sort – Merge Sort – Quick Sort – 
+Binary Search – Finding the Maximum and Minimum.  
+ 
+Algorithm  
+ An algorithm is a step -by-step procedure to solve a problem in a finite 
+number of steps.  
+ Branching and repetition are included in the steps of an algorithm.  
+ This branching and repetition depend on the problem for which Algorithm is 
+developed.  
+ All the steps of Algorithm during the definition should be written in a 
+human -understandable language which does not  depend on any 
+programming language.  
+ we can choose any programming language to implement the Algorithm.  
+ Pseudocode and flow chart are popular ways to represent an algorithm.  
+ 
+An algorithm must satisfy the following criteria:  
+1. Input:  An algorithm should have zero or more but should be a finite number of 
+inputs. We can also say that it is essential for any algorithm before starting. Input 
+should be given to it initially before the Algorithm begins.  
+2. Output:  An algorithm must give at least one required result from the given set 
+of input values. These output values are known as the solution to a problem.  
+3. Definiteness:  Each step must be clear, unambiguous, and precisely defined.  
+4. Finiteness: Finiteness means Algorithm should be term inated after a finite 
+number of steps. Also, each step should be finished in a finite amount of time.  
+5. Effectiveness:  Each step of the Algorithm must be feasible i.e., it should be 
+practically possible to perform the action. Every Algorithm is generally expected to 
+be effective.  
+ 
+Divide and Conquer   
+Divide and Conquer is one of the best -known general algorithm design 
+technique. It works according to the following general plan:  
+ Given a function to compute on „n‟ inputs the divide -and-conquer 
+strategy sugg ests splitting the inputs into „k‟ distinct subsets, 1<k<=n, 
+yielding „k‟ sub problems.  
+ These sub problems must be solved, and then a method must be found 
+to combine sub solutions into a solution of the whole.  
+  If the sub problems are still relatively la rge, then the divide -and-conquer 
+strategy can possibly be reapplied.  
+  Often the sub problems resulting from a divide -and-conquer design are 
+of the same type as the original problem. For those cases the 
+reapplication of the divide -and- conquer principle is naturally expressed 
+by a recursive algorithm.  
+  
+A typical case with k =2is diagrammatically shown below.        
+  
+In the above specification,  
+ Initially DAndC(P) is invoked, where „P‟ is the problem to be solved.  
+ Small (P) is a Boolean -valued function that determines whether the 
+input size is small enough that the answer can be computed without 
+splitting. If this so, the function „ S’ is invoked. Otherwise, the problem P 
+is divided into smaller sub problems. These sub problems P 1, P2 …Pk are 
+solved by recursive application of DAndC .  
+ Combine is a function that determines th e solution to P using the 
+solutions to the „k‟ sub problems.  
+ 
+Binary Search   
+ Problem definition: Let a i, 1 ≤ i ≤ n be a list of elements that are sorted in non -
+decreasing order. The problem is to find whether a given element x is present in the list 
+or no t. If x is present we have to determine a value j (element‘s position) such that a j=x. 
+If x is not in the list, then j is set to zero.  
+ Solution: Let P = (n, a i…a l , x) denote an arbitrary instance of search problem where n 
+is the number of elements in the list, ai…a l is the list of elements and x is the key element 
+to be searched for in the given list. Binary search on the list is done as follows:  
+ Step1: Pick an index q in the middle range [i, l] i.e. q= [(n + 1)/2] and compare x with 
+aq. Step 2: if x = a q i.e key element is equal to mid element, the problem is immediately 
+solved.  
+ Step 3: if x <a qin this case x has to be searched for only in the sub -list a i, ai+1, …… , aq- 
+Therefore, problem reduces to (q-i, ai…a q-1, x).  
+ Step 4: if x >a q,x has to be searched for only in the sub -list a q+1, ...,., al . Therefore problem 
+reduces to (l-i, aq+1…a l, x).  
+ For the above solution procedure, the Algorithm can be implemented as recursive or non - 
+recursive algorithm.  
+Recursive binary search algorithm  
+ 
+Iterative binary search:  
+ 
+ 
+ 
+Finding the maximum and minimum  
+Problem statement: Given a list of n elements, the problem is to find the maximum and 
+minimum items.  
+StraightMaxMin: A simple and straight forward algorithm  to achieve this is given below.  
+  
+ 
+ 
+Explanation:  
+StraightMaxMin requires 2(n -1) comparisons in the best, average & worst cases.  
+By realizing the comparison of a[i]>max is false, improvement in a  algorithm can be done. 
+Hence we can replace the contents of the for loop by,  
+If(a[i]>Max) then Max = a[i]; Else if (a[i]<min) min=a[i]  
+On the average a[i] is > max half the time. So, the avg. no. of comparison is 3n/2 -1.  
+Algorithm based on Divide and  Conquer strategy  
+Let P = (n, a [i],……,a [j]) denote an arbitrary instance of the problem. Here ‗n‘ is the no. of 
+elements in the list (a[i],….,a[j]) and we are interested in finding the maximum and minimum of 
+the list. If the list has more than 2 element s, P has to be divided into smaller instances.  
+For example, we might divide ‗P‘ into the 2 instances, P1= ( [n/2],a[1], a[n/2])  
+P2= (n -[n/2], a[[n/2]+1],……., a[n])  
+After having divided ‗P‘ into 2 smaller sub problems, we can solve them by recursively invoking 
+the same divide -and-conquer algorithm.  
+ Algorithm:  
+ 
+ 
+ 
+ 
+ 
+Compared with the straight forward method (2n -2) this method saves 25% in 
+comparisons.  
+ 
+Space Complexity  
+Compared to the straight forward method, the MaxMin  method requires extra 
+stack space for i, j, max, min, max1 and min1. Given n elements there will be 
+[log 2n] + 1 levels of recursion and we need to save seven values for each 
+recursive call. (6 + 1 for return address).  
+ 
+ Merge Sort  
+Merge sort is a perfec t example of a successful application of the divide -and 
+conquer technique. It sorts a given array A [O ... n - 1] by dividing it into two 
+halves A [0 .. \n/2]-1] and A [ ⎝n/2] .. n-1], sorting each of them recursively, and 
+then merging the two smaller sort ed arrays into a single sorted one.  
+ 
+The merging of two sorted arrays can be done as follows.  
+ Two pointers (array indices) are initialized to point to the first elements of 
+the arrays being merged.  
+  The elements pointed to are compared, and the smaller of them is added 
+to a new array being constructed  
+ After that, the index of the smaller element is incremented to point to its 
+immediate successor in the array it was copied from. This operation is 
+repeated until one of the two given arrays is exhausted, and then the 
+remaining elements of the other array are copied to the end of the new 
+array.  
+ 
+Example:  
+The operation of the algorithm on the list 8, 3, 2, 9, 7, 1, 5, 4 is illustrated in 
+the figure.  
+Analysis  
+Here the basic operation is key comparison. As merge sort execution does not 
+depend on the order of the data, best case and average case runtime are the 
+same as worst case runtime.  
+Worst case: During key comparison, neither of the two arrays be comes empty 
+before the  
+other one contains just one element leads to the worst case of merge sort. 
+Assuming for  
+simplicity that total number of elements n is a power of 2, the recurrence 
+relation for the  
+number of key comparisons C(n) is 
+  
+where, Cmerge(n) is the number of key comparisons made during the merging 
+stage.  
+Let us analyze Cmerge(n), the number of key comparisons performed during the 
+merging stage. At each step, exactly one comparison is made, after which the 
+total number of elements in the tw o arrays still needing to be processed is 
+reduced by 1. In the worst case, neither of the two arrays becomes empty before 
+the other one contains just one element (e.g., smaller elements may come from 
+the alternating arrays).Therefore, for the worst case, Cmerge(n) = n –1.  
+Now, 
+ 
+Solving the recurrence equation using master theorem:  
+Here a = 2, b = 2, f (n) = n, d = 1. Therefore 2 = 2 1, case 2 holds in the master 
+theorem  
+Cworst(n) = Θ (n d log n) = Θ (n 1 log n) = Θ (n log n)Therefore Cworst(n) = Θ (n log 
+n)  
+Advantages:  
+ Number of comparisons performed is nearly optimal.  
+ For large n, the numb er of comparisons made by this algorithm in the 
+average case turns out to be about 0.25n less and hence is also in Θ(n log 
+n).  
+ Mergesort will never degrade to O (n 2)  
+ Another advantage of mergesort over quicksort and heapsort is its 
+stability . (A sorting algorithm is said to be stable if two objects with 
+equal keys appear in the same order in sorted output as they appear in 
+the input array to be sorted.)  
+Limitations:  
+ The principal shortcoming of mergesort is the linear amount [O(n) ] of extra 
+storage the algorithm requires. Though merging can be done in -place, the 
+resulting algorithm is quite complicated and of theoretical interest only.  
+ 
+Variations of mer ge sort  
+1. The algorithm can be implemented bottom up by merging pairs of the array‟s 
+elements, then merging the sorted pairs, and so on. (If n is not a power of 2, 
+only slight bookkeeping complications arise.) This avoids the time and space 
+overhead of u sing a stack to handle recursive calls.  
+2. We can divide a list to be sorted in more than two parts, sort each 
+recursively, and then merge them together. This scheme, which is particularly 
+useful for sorting files residing on secondary memory devices, is called multiway 
+mergesort.  
+Quick sort  
+Quicksort is the other important sorting algorithm that is based on the divide -and-conquer 
+approach. Unlike mergesort, which divides its input elements according to their position in the 
+array, quicksort divides (or partitions) them according to their valu e.  
+A partition is an arrangement of the array‘s elements so that all the elements to the left of some 
+element A[s] are less than or equal to A[s], and all the elements to the right of A[s] are greater 
+than or equal to it:  
+ 
+Obviously, after a partition i s achieved, A[s] will be in its final position in the sorted array,  
+and we can continue sorting the two subarrays to the left and the right of A[s] independently (e.g., 
+by the same method).  
+In quick sort, the entire work happens in the division stage, wi th no work required to combine the 
+solutions to the sub problems.  
+  
+Partitioning  
+We start by selecting a pivot —an element with respect to whose value we are going to divide  
+the subarray. There are several different strategies for selecting a pivot. We u se  
+the sophisticated method suggested by C.A.R. Hoare, the prominent British computer scientist 
+who invented quicksort.  
+Select the subarray‘s first element: p = A[l].Now scan the subarray from both ends, comparing 
+the subarray‘s elements to the pivot.  
+The left -to-right scan, denoted below by index pointer i, starts with the second element. Since 
+we want elements smaller than the pivot to be in the left part of the subarray, this scan skips over 
+elements that are smaller than the pivot and stops upon en countering the first element greater than 
+or equal to the pivot.  
+The right -to-left scan, denoted below by index pointer j, starts with the last element of the 
+subarray. Since we want elements larger than the pivot to be in the right part of the subarray , this 
+scan skips over elements that are larger than the pivot and stops on encountering the first 
+element smaller than or equal to the pivot.  
+After both scans stop, three situations may arise, depending on whether or not 
+the scanning indices have crossed .  
+ If scanning indices i and j have not crossed, i.e., i< j, we simply exchange 
+A[i] and A[j ] and resume the scans by incrementing I and decrementing j, 
+respectively: 
+ 
+                   If the scanning indices have crossed over, i.e., i>  
+j, we will have partitioned the subarray after exchanging the pivot with 
+A[j]: 
+ 
+If the scanning indices stop while pointing to the same element, i.e., i = j, the 
+value they are pointing to must be equal to p. Thus, we have the subarray 
+partitioned, with the split position s = i = j :  
+ 
+ 
+ 
+ 
+Analysis  
+Best Case -Here the basic operation is key comparison. Number of key 
+comparisons made before a partition is achieved is n + 1 if the scanning indices 
+cross over and n if they coincide. If all the splits happe n in the middle of 
+corresponding subarrays, we will have the best case. The number of key 
+comparisons in the best case satisfies the recurrence,  
+ 
+According to the Master Theorem, Cbest(n) ∈Θ(n log 2 n); solving it exactly for n = 
+2k yields  
+Cbest(n) = n log2 n.  
+Worst Case – In the worst case, all the splits will be skewed to the extreme: one 
+of the two subarrays will be empty, and the size of the other will be just 1 less 
+than the size of the subarray being partitioned. This unfortunate situation will 
+happen, in particular, for increasing arrays. Indeed, if A[0..n − 1] is a strictly 
+increasing array and we use A[0] as the pivot, the left -to-right scan will stop on 
+A[1] while the right -to-left scan will go all the way to reach A[0], indicating the 
+split at  position 0:So, after making n + 1 comparisons to get to this partition 
+and exchanging the pivot A[0] with itself, the algorithm will be left with the 
+strictly increasing array A[1..n − 1] to sort. This sorting of strictly increasing 
+arrays of diminishing sizes will continue until the last one A[n−2.. n−1] has 
+been processed. The total number of key comparisons made will be equal to  
+ 
+Average Case - Let C avg(n) be the average number of key comparisons made by 
+quicksort on a randomly ordered array of size n . A partition can happen in any 
+position s (0 ≤ s ≤ n− 1) after n+1comparisons are made to achieve the partition. 
+After the  partition, the left and right subarrays will have s and n − 1− s 
+elements, respectively. Assuming that the partition split can happen  in each 
+position s with the same probability 1/n, we get the following recurrence 
+relation:  
+  
+Its solution, which is much trickier than the worst - and best -case analyses, 
+turns out to be  
+  
+Thus, on the average, quicksort makes only 39% more comp arisons  than in the 
+best case. Moreover, its innermost loop is so efficient that it usually  runs faster 
+than mergesort on randomly ordered arrays of nontrivial sizes. This certainly 
+justifies the name given to the algorithm by its inventor.  
+ 
+Variations: Because o f quicksort‟s importance, there have been persistent 
+efforts over the years to refine the basic algorithm. Among several 
+improvements discovered by researchers are:  
+Better pivot selection methods such as randomize d quicksort that uses a 
+random element or the median -of-three method that uses the median of the 
+leftmost, rightmost, and the middle element of the array  
+Switching to insertion sort on very small subarrays (between 5 and 15 
+elements for most computer systems) or not sorting small sub arrays at all and 
+finishing the algorithm with insertion sort applied to the entire nearly sorted 
+array  
+Modifications of the partitioning algorithm such as the three -way partition into 
+segments smaller than, equal to, and larger than the pivot  
+ 
+Limitat ions: 1. It is not stable. 2. It requires a stack to store parameters of 
+subarrays that are yet to be sorted. 3. While Performance on randomly ordered 
+arrays is known to be sensitive not only to the implementation details of the 
+algorithm but also to both computer architecture and data type . 
+ 
+ 
+Unit - 4 
+Greedy Method : The General Method – Optimal Storage on Tapes – Knapsack Problem – Job 
+Sequencing with Deadlines – Optimal Merge Patterns . 
+GENERAL METHOD  
+Greedy Method  
+Greedy is the most straight forward design technique. Most of the problems have n 
+inputs and require us to obtain a subset that satisfies some constraints. Any subset that 
+satisfies th ese constraints is called a feasible solution. We need to find a feasible solution 
+that either maximizes or minimizes the objective function. A feasible solution that does 
+this is called an optimal solution.  
+The greedy method is a simple strategy of progr essively building up a solution, one 
+element at a time, by choosing the best possible element at each stage. At each stage, a 
+decision is made regarding whether or not a particular input is in an optimal solution. 
+This is done by considering the inputs in an order determined by some selection 
+procedure. If the inclusion of the next input, into the partially constructed optimal 
+solution will result in an infeasible solution then this input is not added to the partial 
+solution. The selection procedure itself is based on some optimization measure. Several 
+optimization measures are plausible for a given problem. Most of them, however, will 
+result in algorithms that generate sub -optimal solutions. This version of greedy 
+technique is called subset paradigm . Some problems like Knapsack, Job sequencing with 
+deadlines and minimum cost spanning trees are based on subset paradigm.  
+For the problems that make decisions by considering the inputs in some order, each 
+decision is made using an optimization criterion that can be computed using decisions 
+already made. This version of greedy method is ordering paradigm . Some problems like 
+optimal storage on tapes, optimal merge patterns and single source shortest path are 
+based on ordering paradigm.  
+ 
+CONTROL ABSTRACTION   
+Algorithm Greedy (a, n)  
+// a(1 : n) contains the „n‟ inputs  
+{  
+solution := 
+ ; // initialize the solution to empty for i:=1 to n do  
+{  
+x := select (a);  
+if feasible (solution, x) then  
+solution := Union (Solution, x);  
+}  
+return solution;  
+}  Procedure  Greedy describes the essential way that a greedy based algorithm will look, 
+once a particular problem is chosen and the functions select, feasible and union are 
+properly implemented.  
+The function select selects an input from „a‟, removes it and assigns i ts value to „x‟. Feasible is a 
+Boolean valued function, which determines if „x‟ can be included into the solution vector. The 
+function Union combines „x‟ with solution and updates the objective function.  
+KNAPSACK PROBLEM  
+Let us apply the greedy method to solve the knapsack problem. We are given „n‟ objects 
+and a knapsack. The object „i‟ has a weight w i and the knapsack has a capacity „m‟. If a 
+fraction x i, 0 < x i < 1 of object i is placed into the knapsack then a profit of p i xi is 
+earned. The objective is  to fill the knapsack that maximizes the total profit earned.  
+Since the knapsack capacity is „m‟, we require the total weight of all chosen objects to be at 
+most „m‟. The problem is stated as:  
+ 
+The profits and weights are positive numbers.  
+Algorithm  
+If the objects are already been sorted into non -increasing order of p[i] / w[i] then the 
+algorithm given below obtains solutions corresponding to this strategy.  
+ 
+Algorithm GreedyKnapsack (m, n)  
+// P[1 : n] and w[1 : n] c ontain the profits and weights respectively of  
+// Objects ordered so that p[i] / w[i] > p[i + 1] / w[i + 1].  
+// m is the knapsack size and x[1: n] is the solution vector.  
+{  
+for i := 1 to n do x[i] := 0.0 // initialize x U := m;  
+for i := 1 to n do  
+{  
+if (w(i) > U) then break;  
+x [i] := 1.0; U := U – w[i];  
+}  
+if (i < n) then x[i] := U / w[i];  
+}  
+Running time:  
+The objects are to be sorted into non -decreasing order of p i / wi ratio. But if we disregard 
+the time to initially sort the objects, the algorithm requires only O(n) time.  
+Example:  
+Consider the following instance of the knapsack problem: n = 3, m = 20, (p 1, p2, p3) = (25, 24, 
+15) and (w 1, w2, w3) = (18, 15, 10).  
+ 
+ OPTIMAL STORAGE ON  TAPES  
+There are „n‟ programs that are to be stored on a computer tape of length „L‟. Each 
+program „i‟ is of length l i, 1 ≤ i ≤ n. All the programs can be stored on the tape if and 
+only if the sum of the lengths of the programs is at most „L‟.  
+We shall a ssume that whenever a program is to be retrieved from this tape, the tape is 
+initially positioned at the front. If the programs are stored in the order i = i 1, i2, . . . . .  
+, in, the time t J needed to retrieve program i J is proportional to  
+ 
+ 
+ 
+ 
+Example  
+Let n = 3, (l 1, l2, l3) = (5, 10, 3). Then find the optimal ordering?  
+Solution:  
+There are n! = 6 possible orderings. They are:  
+ 
+ 
+Algorithm:  
+The algorithm for assigning programs to tapes is as follows:  
+Algorithm Store (n, m)  
+// n is the number of programs and m the number of tapes  
+{  
+j := 0; // next tape to store on for i :=1 to n do  
+{  
+Print („append program‟, i, „to permutation for tape‟, j); j := (j + 1) mod m;  
+}  
+}  
+On any given tape, the programs are stored in non -decreasing order of their lengths.  
+ 
+ 
+JOB SEQUENCING WITH DEADLINES  
+ 
+When we are given a set of „n‟ jobs. Associated with eac h Job i, deadline d i > 0 and 
+profit P i > 0. For any job „i‟ the profit pi is earned iff the job is completed by its deadline. 
+Only one machine is available for processing jobs. An optimal solution is the feasible 
+solution with maximum profit.  
+Sort the job s in „j‟ ordered by their deadlines. The array d [1 : n] is used to store the 
+deadlines of the order of their p -values. The set of jobs j [1 : k] such that j [r], 1 ≤ r ≤ k 
+are the jobs in „j‟ and d (j [1]) ≤ d (j[2]) ≤ . . . ≤ d (j[k]). To test whether J U {i} is 
+feasible, we have just to insert i into J preserving the deadline ordering and then verify 
+that d [J[r]] ≤ r, 1 ≤ r ≤ k+1.  
+ 
+ 
+Example:  
+Let n = 4, (P 1, P2, P3, P4,) = (100, 10, 15, 27) and (d 1 d2 d3 d4) = (2, 1, 2, 1). The  
+feasible solutions and their values are:  
+ 
+ 
+ 
+ 
+ 
+ 
+OPTIMAL MERGE PATERNS  
+Given „n‟ sorted files, there are many ways to pair wise merge them into a single sorted 
+file. As, different pairings require different amounts of computing time, we want to 
+determine an optimal (i.e., one requiring the fewest comparisons) way to pair wise 
+merge „n‟ sorted files together. This type of merging is called as 2 -way merge patterns. 
+To merge an n -record file and an m -record file  requires possibly n + m record moves, 
+the obvious choice choice is, at each step merge the two smallest files together. The 
+two-way merge patterns can be represented by binary merge trees.  
+ 
+Algorithm to Generate Two -way Merge Tree:  
+ 
+struct treenode  
+{  
+  treenode * lchild;  
+  treenode * rchild;  
+}; 
+ 
+Example 1:  
+Suppose we are having three sorted files X 1, X2 and X 3 of length 30, 20, and 10 records each. 
+Merging of the files can be carried out as follows:  
+ 
+Example 2:  
+Given five files (X1, X2, X3, X4, X5) with sizes (20, 30, 10, 5, 30). Apply greedy rule to 
+find optimal way of pair wise merging to give an optimal solution using binary merge 
+tree representation.  
+Solution:  
+ 
+Merge X 4 and X 3 to get 15 record moves. Call this Z 1.  
+ 
+Merge Z 1 and X 1 to get 35 record moves. Call this Z 2.  
+ 
+ 
+ 
+ 
+Unit V  
+Back tracking: The General Method – The 8 -Queens Problem – Sum of Subsets – Graph Coloring .   
+ 
+ Backtracking  
+Some problems can be solved, by exhaustive search. The exhaustive -search technique 
+suggests generatin g all candidate solutions and then identifying the one (or the ones) with a 
+desired property.  
+Backtracking is a more intelligent variation of this approach. The principal idea is to 
+construct solutions one component at a time and evaluate such partially c onstructed 
+candidates as follows. If a partially constructed solution can be developed further without 
+violating the problem‘s constraints, it is done by taking the first remaining legitimate option 
+for the next component. If there is no legitimate option for the next component, no 
+alternatives for any remaining component need to be considered. In this case, the algorithm 
+backtracks to replace the last component of the partially constructed solution with its next 
+option.  
+It is convenient to implement this kind of processing by constructing a tree of choices being 
+made, called the state -space tree . Its root represents an initial state before the search for a 
+solution begins. The nodes of the first level in the tree represent t he choices made for the first 
+component of a solution; the nodes of the second level represent the choices for the second 
+component, and soon. A node in a state -space tree is said to be promising if it corresponds to 
+a partially constructed solution that m ay still lead to a complete solution; otherwise, it is 
+called non-promising . Leaves represent either non -promising dead ends or complete 
+solutions found by the algorithm.  
+In the majority of cases, a state space tree for a backtracking algorithm is constru cted in the 
+manner of depth -first search. If the current node is promising, its child is generated by adding 
+the first remaining legitimate option for the next component of a solution, and the processing 
+moves to this child. If the current node turns out t o be non -promising, the algorithm 
+backtracks to the node‘s parent to consider the next possible option for its last component; if 
+there is no such option, it backtracks one more level up the tree, and so on. Finally, if the 
+algorithm reaches a complete sol ution to the problem, it either stops (if just one solution is 
+required) or continues searching for other possible solutions.  
+ 
+General method  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+General Algorithm (Recursive)  
+ 
+ 
+General Algorithm (Iterative)  
+ 
+  General Algorithm for backtracking  
+ 
+ 
+N-Queens problem  
+The problem is to place n queens on an n × n chessboard so that no two queens attack each other 
+by being in the same row or in the same column or on the same diagonal.  
+So let us consider the four-queens problem and solve it by the backtracking technique. Since each of the 
+four queens has to be placed in its own row, all we need to do is to assign a column for each queen on the 
+board presented in figure.  
+ 
+We start with the empty board and then place queen 1 in the first possible position of its row, which is 
+in column 1 of row 1. Then we place queen 2, after trying unsuccessfully columns 1 and 2, in the first 
+acceptable position for it, which is square (2, 3), the square in row 2 and column 3. This proves to be a 
+dead end because there is no acceptable position for queen 3. So, the algo rithm backtracks and puts 
+queen 2 in the next possible position at (2, 4). Then queen 3 is placed at (3, 2), which proves to be 
+another dead end. The algorithm then backtracks all the way to queen 1 and moves it to (1, 2). Queen 2 
+then goes to (2, 4), quee n 3 to(3, 1), and queen 4 to (4, 3), which is a solution to the problem. The state -
+space tree of this search is shown in figure.  
+ 
+ 
+Figure: State -space tree of solving the four -queens problem by backtracking. × denotes an  
+unsuccessful attempt to place a queen in the indicated column. The numbers above the nodes indicate 
+the order in which the nodes are generated.  
+If other solutions need to be found, the algorithm can simply resume its operations at the leaf at 
+which it st opped. Alternatively, we can use the board‘s symmetry for this purpose.  
+Finally, it should be pointed out that a single solution to the n -queens problem for any n ≥ 4 can 
+be found in linear time .  
+Note: The algorithm NQueens() is not in the syllabus. It i s given here for interested learners. The 
+algorithm is referred from textbook T2.  
+ 
+ 
+ 
+ 
+ 
+ Sum of subsets problem  
+Problem definition: Find a subset of a given set A = {a 1, . . . , a n} of n positive integers whose 
+sum is equal to a given positive integer d.  
+For example, for A = {1, 2, 5, 6, 8} and d = 9, there are two solutions: {1, 2, 6} and {1, 8}. Of 
+course, some instances of this problem may have no solutions.  
+It is convenient to  sort the set‘s elements in increasing order. So, we will assume that  
+a1< a2< . . . < a n.  
+The state -space tree can be constructed as a binary tree like that in Figure shown below for the 
+instance A = {3, 5, 6, 7} and d = 15.  
+The number inside a node is the sum of the elements already included in the subsets represented by the 
+node. The inequality below a leaf indicates the reason for its termination.  
+ 
+ 
+ 
+ 
+The root of the tree represents the starting point, with no deci sions about the given elements made 
+as yet. Its left and right children represent, respectively, inclusion and exclusion of a 1 in a set 
+being sought.  
+Similarly, going to the left from a node of the first level corresponds to inclusion of a 2 while 
+going to  the right corresponds to its exclusion, and so on. Thus, a path from the root to a node on 
+the i th level of the tree indicates which of the first in numbers have been included in the subsets 
+represented by that node.  
+We record the value of s, the sum of these numbers, in the node. If s is equal to d, we have a solution to 
+the problem. We can either report this result and stop or, if all the solutions need to be found, continue by 
+backtracking to the node‘s parent. If s is not equal to d, we can terminate the node as non -promising if 
+either of the following two inequalities holds:  
+ 
+Example: Apply backtracking to solve the following instance of the subset sum problem: A  
+= {1, 3, 4, 5} and d = 11.  
+ 
+Graph coloring  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+     
+        
+ 
+ 
+ 
+ 
+ 
+Analysis
+
